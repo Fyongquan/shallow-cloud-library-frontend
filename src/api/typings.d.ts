@@ -194,11 +194,11 @@ declare namespace API {
 
   type CreatePictureOutPaintingTaskRequest = {
     parameters?: Parameters
-    pictureId?: number
+    pictureId?: string | number
   }
 
   type DeleteRequest = {
-    id?: number
+    id?: string | number
   }
 
   type GetOutPaintingTaskResponse = {
@@ -208,7 +208,7 @@ declare namespace API {
 
   type getPictureByIdUsingGETParams = {
     /** id */
-    id?: number
+    id?: string | number
   }
 
   type getPictureOutPaintingTaskUsingGETParams = {
@@ -218,29 +218,29 @@ declare namespace API {
 
   type getPictureVOByIdUsingGETParams = {
     /** id */
-    id?: number
+    id?: string | number
     /** shareCode */
     shareCode?: string
   }
 
   type getSpaceByIdUsingGETParams = {
     /** id */
-    id?: number
+    id?: string | number
   }
 
   type getSpaceVOByIdUsingGETParams = {
     /** id */
-    id?: number
+    id?: string | number
   }
 
   type getUserByIdUsingGETParams = {
     /** id */
-    id?: number
+    id?: string | number
   }
 
   type getUserVOByIdUsingGETParams = {
     /** id */
-    id?: number
+    id?: string | number
   }
 
   type ImageSearchResult = {
@@ -439,16 +439,16 @@ declare namespace API {
 
   type PictureUploadRequest = {
     fileUrl?: string
-    id?: number
+    id?: string | number
     picName?: string
-    spaceId?: number
+    spaceId?: string | number
   }
 
   type PictureVO = {
     category?: string
     createTime?: string
     editTime?: string
-    id?: number
+    id?: string | number
     introduction?: string
     name?: string
     permissionList?: string[]
@@ -458,13 +458,13 @@ declare namespace API {
     picScale?: number
     picSize?: number
     picWidth?: number
-    spaceId?: number
+    spaceId?: string | number
     tags?: string[]
     thumbnailUrl?: string
     updateTime?: string
     url?: string
     user?: UserVO
-    userId?: number
+    userId?: string | number
   }
 
   type SearchPictureByColorRequest = {
@@ -473,7 +473,7 @@ declare namespace API {
   }
 
   type SearchPictureByPictureRequest = {
-    pictureId?: number
+    pictureId?: string | number
   }
 
   type Space = {
