@@ -1,6 +1,5 @@
-<template>
+﻿<template>
   <div class="picture-list">
-    <!-- ???? -->
     <a-list
       :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }"
       :data-source="dataList"
@@ -8,7 +7,6 @@
     >
       <template #renderItem="{ item: picture }">
         <a-list-item style="padding: 0">
-          <!-- ???? -->
           <a-card hoverable @click="doClickPicture(picture)">
             <template #cover>
               <img
@@ -21,7 +19,7 @@
               <template #description>
                 <a-flex>
                   <a-tag color="green">
-                    {{ picture.category ?? '??' }}
+                    {{ picture.category ?? '默认' }}
                   </a-tag>
                   <a-tag v-for="tag in picture.tags" :key="tag">
                     {{ tag }}
@@ -39,11 +37,12 @@
         </a-list-item>
       </template>
     </a-list>
-    <ShareModal ref="shareModalRef" :link="shareLink" />
+    <ShareModal ref="shareModalRef" :link="shareLink" :expire-time="shareExpireTime" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   DeleteOutlined,
@@ -51,10 +50,9 @@ import {
   SearchOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons-vue'
-import { deletePictureUsingPost } from '@/api/pictureController.ts'
+import { createPictureShareUsingPost, deletePictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import ShareModal from '@/components/ShareModal.vue'
-import { ref } from 'vue'
 
 interface Props {
   dataList?: API.PictureVO[]
@@ -74,26 +72,20 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const router = useRouter()
-// ????????
+
 const doClickPicture = (picture: API.PictureVO) => {
   router.push({
     path: `/picture/${picture.id}`,
   })
 }
 
-// ??
 const doSearch = (picture, e) => {
-  // ????
   e.stopPropagation()
-  // ??????
   window.open(`/search_picture?pictureId=${picture.id}`)
 }
 
-// ??
 const doEdit = (picture, e) => {
-  // ????
   e.stopPropagation()
-  // ???????? spaceId
   router.push({
     path: '/add_picture',
     query: {
@@ -103,9 +95,7 @@ const doEdit = (picture, e) => {
   })
 }
 
-// ????
 const doDelete = async (picture, e) => {
-  // ????
   e.stopPropagation()
   const id = picture.id
   if (!id) {
@@ -113,22 +103,38 @@ const doDelete = async (picture, e) => {
   }
   const res = await deletePictureUsingPost({ id })
   if (res.data.code === 200) {
-    message.success('????')
+    message.success('删除成功')
     props.onReload?.()
   } else {
-    message.error('????')
+    message.error('删除失败')
   }
 }
 
-// ----- ???? ----
 const shareModalRef = ref()
-// ????
 const shareLink = ref<string>()
-// ??
-const doShare = (picture, e) => {
-  // ????
+const shareExpireTime = ref<string>()
+
+const formatExpireTime = (expireTime?: string) => {
+  if (!expireTime) {
+    return undefined
+  }
+  return new Date(expireTime).toLocaleString()
+}
+
+const doShare = async (picture, e) => {
   e.stopPropagation()
-  shareLink.value = `${window.location.protocol}//${window.location.host}/picture/${picture.id}`
+  if (!picture.id) {
+    return
+  }
+  const res = await createPictureShareUsingPost({
+    pictureId: picture.id,
+  })
+  if (res.data.code !== 200 || !res.data.data?.sharePath) {
+    message.error(res.data.message ?? '生成分享链接失败')
+    return
+  }
+  shareLink.value = `${window.location.protocol}//${window.location.host}${res.data.data.sharePath}`
+  shareExpireTime.value = formatExpireTime(res.data.data.expireTime)
   if (shareModalRef.value) {
     shareModalRef.value.openModal()
   }

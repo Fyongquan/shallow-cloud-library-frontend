@@ -131,6 +131,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePictureShareVO_ = {
+    code?: number
+    data?: PictureShareVO
+    message?: string
+  }
+
   type BaseResponsePictureVO_ = {
     code?: number
     data?: PictureVO
@@ -213,6 +219,8 @@ declare namespace API {
   type getPictureVOByIdUsingGETParams = {
     /** id */
     id?: number
+    /** shareCode */
+    shareCode?: string
   }
 
   type getSpaceByIdUsingGETParams = {
@@ -401,6 +409,18 @@ declare namespace API {
   type PictureTagCategory = {
     categoryList?: string[]
     tagList?: string[]
+  }
+
+  type PictureShareRequest = {
+    expireDays?: number
+    pictureId?: number
+  }
+
+  type PictureShareVO = {
+    expireTime?: string
+    pictureId?: number
+    shareCode?: string
+    sharePath?: string
   }
 
   type PictureUpdateRequest = {
