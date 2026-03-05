@@ -453,6 +453,7 @@ declare namespace API {
     name?: string
     permissionList?: string[]
     picColor?: string
+    picColorPalette?: string[]
     picFormat?: string
     picHeight?: number
     picScale?: number

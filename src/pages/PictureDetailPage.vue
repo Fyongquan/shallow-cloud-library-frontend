@@ -57,6 +57,26 @@
                 />
               </a-space>
             </a-descriptions-item>
+            <a-descriptions-item label="代表色">
+              <a-space wrap>
+                <template v-if="picture.picColorPalette?.length">
+                  <a-tag v-for="color in picture.picColorPalette" :key="color">
+                    <a-space :size="4">
+                      <div
+                        :style="{
+                          width: '12px',
+                          height: '12px',
+                          backgroundColor: toHexColor(color),
+                          borderRadius: '2px',
+                        }"
+                      />
+                      {{ color }}
+                    </a-space>
+                  </a-tag>
+                </template>
+                <template v-else>-</template>
+              </a-space>
+            </a-descriptions-item>
           </a-descriptions>
           <a-space wrap>
             <a-button type="primary" @click="doDownload">
