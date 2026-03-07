@@ -173,6 +173,35 @@ export async function getPictureOutPaintingTaskUsingGet(
   )
 }
 
+/** createPictureByText POST /api/picture/text_gen/create_task */
+export async function createPictureByTextUsingPost(
+  body: API.Text2ImageTaskRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseText2ImageTaskResponse_>('/api/picture/text_gen/create_task', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** getText2ImageTask GET /api/picture/text_gen/get_task */
+export async function getText2ImageTaskUsingGet(
+  params: API.getText2ImageTaskUsingGETParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseGetText2ImageTaskResponse_>('/api/picture/text_gen/get_task', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
 /** doPictureReview POST /api/picture/review */
 export async function doPictureReviewUsingPost(
   body: API.PictureReviewRequest,

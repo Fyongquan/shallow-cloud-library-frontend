@@ -11,9 +11,21 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseGetText2ImageTaskResponse_ = {
+    code?: number
+    data?: GetText2ImageTaskResponse
+    message?: string
+  }
+
   type BaseResponseGetOutPaintingTaskResponse_ = {
     code?: number
     data?: GetOutPaintingTaskResponse
+    message?: string
+  }
+
+  type BaseResponseText2ImageTaskResponse_ = {
+    code?: number
+    data?: Text2ImageTaskResponse
     message?: string
   }
 
@@ -206,12 +218,22 @@ declare namespace API {
     requestId?: string
   }
 
+  type GetText2ImageTaskResponse = {
+    output?: Text2ImageOutput1
+    requestId?: string
+  }
+
   type getPictureByIdUsingGETParams = {
     /** id */
     id?: string | number
   }
 
   type getPictureOutPaintingTaskUsingGETParams = {
+    /** taskId */
+    taskId?: string
+  }
+
+  type getText2ImageTaskUsingGETParams = {
     /** taskId */
     taskId?: string
   }
@@ -272,6 +294,18 @@ declare namespace API {
     outputImageUrl?: string
     scheduledTime?: string
     submitTime?: string
+    taskId?: string
+    taskMetrics?: TaskMetrics
+    taskStatus?: string
+  }
+
+  type Text2ImageOutput = {
+    taskId?: string
+    taskStatus?: string
+  }
+
+  type Text2ImageOutput1 = {
+    results?: Text2ImageResult[]
     taskId?: string
     taskMetrics?: TaskMetrics
     taskStatus?: string
@@ -466,6 +500,33 @@ declare namespace API {
     url?: string
     user?: UserVO
     userId?: string | number
+  }
+
+  type Text2ImageInput = {
+    prompt?: string
+  }
+
+  type Text2ImageParameters = {
+    n?: number
+    size?: string
+    style?: string
+  }
+
+  type Text2ImageResult = {
+    url?: string
+  }
+
+  type Text2ImageTaskRequest = {
+    input?: Text2ImageInput
+    model?: string
+    parameters?: Text2ImageParameters
+  }
+
+  type Text2ImageTaskResponse = {
+    code?: string
+    message?: string
+    output?: Text2ImageOutput
+    requestId?: string
   }
 
   type SearchPictureByColorRequest = {

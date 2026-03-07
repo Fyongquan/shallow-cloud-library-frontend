@@ -17,6 +17,12 @@
         <UrlPictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
       </a-tab-pane>
     </a-tabs>
+    <div class="ai-bar">
+      <a-button type="primary" ghost :icon="h(BulbOutlined)" @click="doTextGenerate">
+        AI 文生图
+      </a-button>
+    </div>
+    <ImageTextGenerate ref="imageTextGenerateRef" :spaceId="spaceId" :onSuccess="onTextGenerateSuccess" />
     <!-- 图片编辑 -->
     <div v-if="picture" class="edit-bar">
       <a-space size="middle">
@@ -95,8 +101,9 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
-import { EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
+import { BulbOutlined, EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
 import ImageOutPainting from '@/components/ImageOutPainting.vue'
+import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
 
 const router = useRouter()
@@ -226,6 +233,18 @@ const onImageOutPaintingSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
 }
 
+// ----- AI 文生图引用 -----
+const imageTextGenerateRef = ref()
+
+const doTextGenerate = async () => {
+  imageTextGenerateRef.value?.openModal()
+}
+
+const onTextGenerateSuccess = (newPicture: API.PictureVO) => {
+  picture.value = newPicture
+  pictureForm.name = newPicture.name
+}
+
 // 获取空间信息
 const space = ref<API.SpaceVO>()
 
@@ -254,6 +273,11 @@ watchEffect(() => {
 }
 
 #addPicturePage .edit-bar {
+  text-align: center;
+  margin: 16px 0;
+}
+
+#addPicturePage .ai-bar {
   text-align: center;
   margin: 16px 0;
 }
