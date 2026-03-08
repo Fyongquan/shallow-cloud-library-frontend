@@ -135,12 +135,58 @@ export async function userRegisterUsingPost(
   })
 }
 
+/** uploadUserAvatar POST /api/user/avatar/upload */
+export async function uploadUserAvatarUsingPost(file?: File, options?: { [key: string]: any }) {
+  const formData = new FormData()
+
+  if (file) {
+    formData.append('file', file)
+  }
+
+  return request<API.BaseResponseString_>('/api/user/avatar/upload', {
+    method: 'POST',
+    data: formData,
+    requestType: 'form',
+    ...(options || {}),
+  })
+}
+
 /** updateUser POST /api/user/update */
 export async function updateUserUsingPost(
   body: API.UserUpdateRequest,
   options?: { [key: string]: any }
 ) {
   return request<API.BaseResponseBoolean_>('/api/user/update', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** updateMyUser POST /api/user/update/my */
+export async function updateMyUserUsingPost(
+  body: API.UserProfileUpdateRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/user/update/my', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** updateMyUserPassword POST /api/user/update/my/password */
+export async function updateMyUserPasswordUsingPost(
+  body: API.UserPasswordUpdateRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/user/update/my/password', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

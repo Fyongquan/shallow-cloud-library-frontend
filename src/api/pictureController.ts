@@ -122,6 +122,21 @@ export async function listPictureVoByPageUsingPost(
   })
 }
 
+/** listMyPictureVOByPage POST /api/picture/my/list/page/vo */
+export async function listMyPictureVoByPageUsingPost(
+  body: API.PictureQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePagePictureVO_>('/api/picture/my/list/page/vo', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** listPictureVOByPageWithCache POST /api/picture/list/page/vo/cache */
 export async function listPictureVoByPageWithCacheUsingPost(
   body: API.PictureQueryRequest,

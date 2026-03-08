@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div id="globalHeader">
     <a-row :wrap="false">
       <a-col flex="200px">
         <router-link to="/">
           <div class="title-bar">
             <img class="logo" src="../assets/logo.png" alt="logo" />
-            <div class="title">浅度云图库</div>
+            <div class="title">浅云图库</div>
           </div>
         </router-link>
       </a-col>
@@ -17,17 +17,27 @@
           @click="doMenuClick"
         />
       </a-col>
-      <!-- 用户信息展示栏 -->
-      <a-col flex="120px">
+      <a-col flex="180px">
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
-              <a-space>
+              <a-space class="user-dropdown-trigger">
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-                {{ loginUserStore.loginUser.userName ?? '无名' }}
+                <span
+                  class="user-name"
+                  :title="loginUserStore.loginUser.userName ?? '无名'"
+                >
+                  {{ loginUserStore.loginUser.userName ?? '无名' }}
+                </span>
               </a-space>
               <template #overlay>
                 <a-menu>
+                  <a-menu-item>
+                    <router-link to="/user/profile">
+                      <UserOutlined />
+                      个人中心
+                    </router-link>
+                  </a-menu-item>
                   <a-menu-item>
                     <router-link to="/my_space">
                       <UserOutlined />
@@ -50,23 +60,24 @@
     </a-row>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { computed, h, ref } from 'vue'
 import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons-vue'
-import { MenuProps, message } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
+import type { MenuProps } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { userLogoutUsingPost } from '@/api/userController.ts'
 
 const loginUserStore = useLoginUserStore()
 
-// 未经过滤的菜单项
 const originItems = [
   {
     key: '/',
     icon: () => h(HomeOutlined),
-    label: '主页',
-    title: '主页',
+    label: '首页',
+    title: '首页',
   },
   {
     key: '/add_picture',
@@ -95,10 +106,8 @@ const originItems = [
   },
 ]
 
-// 根据权限过滤菜单项
 const filterMenus = (menus = [] as MenuProps['items']) => {
   return menus?.filter((menu) => {
-    // 管理员才能看到 /admin 开头的菜单
     if (menu?.key?.startsWith('/admin')) {
       const loginUser = loginUserStore.loginUser
       if (!loginUser || loginUser.userRole !== 'admin') {
@@ -109,25 +118,21 @@ const filterMenus = (menus = [] as MenuProps['items']) => {
   })
 }
 
-// 展示在菜单的路由数组
 const items = computed(() => filterMenus(originItems))
 
 const router = useRouter()
-// 当前要高亮的菜单项
 const current = ref<string[]>([])
-// 监听路由变化，更新高亮菜单项
-router.afterEach((to, from, next) => {
+
+router.afterEach((to) => {
   current.value = [to.path]
 })
 
-// 路由跳转事件
-const doMenuClick = ({ key }) => {
+const doMenuClick = ({ key }: { key: string }) => {
   router.push({
     path: key,
   })
 }
 
-// 用户注销
 const doLogout = async () => {
   const res = await userLogoutUsingPost()
   if (res.data.code === 200) {
@@ -156,5 +161,24 @@ const doLogout = async () => {
 
 .logo {
   height: 48px;
+}
+
+.user-login-status {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-dropdown-trigger {
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.user-name {
+  display: inline-block;
+  max-width: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 </style>
