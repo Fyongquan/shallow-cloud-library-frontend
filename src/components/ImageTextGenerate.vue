@@ -2,40 +2,40 @@
   <a-modal
     class="image-text-generate"
     v-model:visible="visible"
-    title="AI Text To Image"
+    title="AI 文生图"
     :footer="false"
     @cancel="closeModal"
   >
     <a-form layout="vertical">
-      <a-form-item label="Prompt">
+      <a-form-item label="提示词">
         <a-textarea
           v-model:value="prompt"
-          placeholder="Describe the image you want to generate"
+          placeholder="请输入你想生成的图片描述"
           :rows="4"
           allow-clear
         />
       </a-form-item>
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-form-item label="Style">
+          <a-form-item label="风格">
             <a-select v-model:value="style" :options="styleOptions" />
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item label="Size">
+          <a-form-item label="尺寸">
             <a-select v-model:value="size" :options="sizeOptions" />
           </a-form-item>
         </a-col>
       </a-row>
     </a-form>
     <div class="result-panel">
-      <img v-if="resultImageUrl" :src="resultImageUrl" alt="AI generated image" style="max-width: 100%" />
-      <a-empty v-else description="Generated image will be shown here" />
+      <img v-if="resultImageUrl" :src="resultImageUrl" alt="AI 生成图片" style="max-width: 100%" />
+      <a-empty v-else description="生成结果会显示在这里" />
     </div>
     <a-flex justify="center" gap="16">
-      <a-button type="primary" :loading="generating" ghost @click="createTask">Generate</a-button>
+      <a-button type="primary" :loading="generating" ghost @click="createTask">生成图片</a-button>
       <a-button v-if="resultImageUrl" type="primary" :loading="uploadLoading" @click="handleUpload">
-        Save To Library
+        保存到图库
       </a-button>
     </a-flex>
   </a-modal>
@@ -67,10 +67,10 @@ const generating = ref(false)
 const uploadLoading = ref(false)
 
 const styleOptions = [
-  { label: 'Auto', value: '<auto>' },
-  { label: 'Photography', value: '<photography>' },
-  { label: 'Anime', value: '<anime>' },
-  { label: 'Flat Illustration', value: '<flat illustration>' },
+  { label: '自动', value: '<auto>' },
+  { label: '摄影', value: '<photography>' },
+  { label: '动漫', value: '<anime>' },
+  { label: '扁平插画', value: '<flat illustration>' },
 ]
 
 const sizeOptions = [
@@ -83,7 +83,7 @@ let pollingTimer: ReturnType<typeof setInterval> | null = null
 
 const createTask = async () => {
   if (!prompt.value.trim()) {
-    message.warning('Please enter a prompt')
+    message.warning('请输入提示词')
     return
   }
   if (generating.value) {
@@ -102,30 +102,32 @@ const createTask = async () => {
         n: 1,
       },
     })
-    if (res.data.code === 200 && res.data.data?.output?.taskId) {
-      taskId.value = res.data.data.output.taskId
-      message.success('Text-to-image task created')
-      startPolling()
+    const currentTaskId = res.data.data?.output?.taskId
+    if (res.data.code === 200 && currentTaskId) {
+      taskId.value = currentTaskId
+      message.success('创建文生图任务成功')
+      startPolling(currentTaskId)
       return
     }
     generating.value = false
-    message.error('Create task failed: ' + res.data.message)
+    message.error('创建文生图任务失败：' + res.data.message)
   } catch (error: any) {
     generating.value = false
-    message.error('Create task failed: ' + error.message)
+    message.error('创建文生图任务失败：' + error.message)
   }
 }
 
-const startPolling = () => {
-  if (!taskId.value) {
+const startPolling = (currentTaskId: string) => {
+  if (!currentTaskId) {
     generating.value = false
     return
   }
-  clearPolling()
+  clearPolling(false)
+  taskId.value = currentTaskId
   pollingTimer = setInterval(async () => {
     try {
       const res = await getText2ImageTaskUsingGet({
-        taskId: taskId.value,
+        taskId: currentTaskId,
       })
       if (res.data.code !== 200 || !res.data.data?.output) {
         return
@@ -136,29 +138,31 @@ const startPolling = () => {
         clearPolling()
         generating.value = false
         if (resultImageUrl.value) {
-          message.success('Image generated successfully')
+          message.success('图片生成成功')
         } else {
-          message.warning('Task succeeded but no image was returned')
+          message.warning('任务已完成，但未返回图片结果')
         }
       } else if (taskResult.taskStatus === 'FAILED') {
         clearPolling()
         generating.value = false
-        message.error('Image generation failed')
+        message.error('图片生成失败')
       }
     } catch (error: any) {
       clearPolling()
       generating.value = false
-      message.error('Query task failed: ' + error.message)
+      message.error('查询任务失败：' + error.message)
     }
   }, 3000)
 }
 
-const clearPolling = () => {
+const clearPolling = (resetTaskId = true) => {
   if (pollingTimer) {
     clearInterval(pollingTimer)
     pollingTimer = null
   }
-  taskId.value = undefined
+  if (resetTaskId) {
+    taskId.value = undefined
+  }
 }
 
 const handleUpload = async () => {
@@ -169,18 +173,18 @@ const handleUpload = async () => {
   try {
     const res = await uploadPictureByUrlUsingPost({
       fileUrl: resultImageUrl.value,
-      picName: prompt.value.trim().slice(0, 20) || 'AI generated image',
+      picName: prompt.value.trim().slice(0, 20) || 'AI生成图片',
       spaceId: props.spaceId,
     })
     if (res.data.code === 200 && res.data.data) {
-      message.success('Generated image saved successfully')
+      message.success('生成图片保存成功')
       props.onSuccess?.(res.data.data)
       closeModal()
     } else {
-      message.error('Save image failed: ' + res.data.message)
+      message.error('保存图片失败：' + res.data.message)
     }
   } catch (error: any) {
-    message.error('Save image failed: ' + error.message)
+    message.error('保存图片失败：' + error.message)
   }
   uploadLoading.value = false
 }

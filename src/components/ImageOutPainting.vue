@@ -6,19 +6,15 @@
     :footer="false"
     @cancel="closeModal"
   >
-    <a-row gutter="16">
-      <a-col span="12">
+    <a-row :gutter="16">
+      <a-col :span="12">
         <h4>原始图片</h4>
         <img :src="picture?.url" :alt="picture?.name" style="max-width: 100%" />
       </a-col>
-      <a-col span="12">
+      <a-col :span="12">
         <h4>扩图结果</h4>
-        <img
-          v-if="resultImageUrl"
-          :src="resultImageUrl"
-          :alt="picture?.name"
-          style="max-width: 100%"
-        />
+        <img v-if="resultImageUrl" :src="resultImageUrl" :alt="picture?.name" style="max-width: 100%" />
+        <a-empty v-else description="结果图片将在这里显示" />
       </a-col>
     </a-row>
     <div style="margin-bottom: 16px" />
@@ -32,146 +28,138 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import {
   createPictureOutPaintingTaskUsingPost,
   getPictureOutPaintingTaskUsingGet,
   uploadPictureByUrlUsingPost,
 } from '@/api/pictureController.ts'
-import { message } from 'ant-design-vue'
 
 interface Props {
   picture?: API.PictureVO
-  spaceId?: number
+  spaceId?: string | number
   onSuccess?: (newPicture: API.PictureVO) => void
 }
 
 const props = defineProps<Props>()
 
-const resultImageUrl = ref<string>('')
-
-// 任务 id
+const visible = ref(false)
+const resultImageUrl = ref('')
 const taskId = ref<string>()
+const uploadLoading = ref(false)
 
-/**
- * 创建任务
- */
+let pollingTimer: ReturnType<typeof setInterval> | null = null
+
 const createTask = async () => {
   if (!props.picture?.id) {
+    message.warning('请先选择要扩图的图片')
     return
   }
-  const res = await createPictureOutPaintingTaskUsingPost({
-    pictureId: props.picture.id,
-    // 根据需要设置扩图参数
-    parameters: {
-      xScale: 2,
-      yScale: 2,
-    },
-  })
-  if (res.data.code === 200 && res.data.data) {
-    message.success('创建任务成功，请耐心等待，不要退出界面')
-    console.log(res.data.data.output.taskId)
-    taskId.value = res.data.data.output.taskId
-    // 开启轮询
-    startPolling()
-  } else {
-    message.error('图片任务失败，' + res.data.message)
+  try {
+    const res = await createPictureOutPaintingTaskUsingPost({
+      pictureId: props.picture.id,
+      parameters: {
+        xScale: 2,
+        yScale: 2,
+      },
+    })
+    const currentTaskId = res.data.data?.output?.taskId
+    if (res.data.code === 200 && currentTaskId) {
+      message.success('创建扩图任务成功，请耐心等待')
+      taskId.value = currentTaskId
+      startPolling(currentTaskId)
+      return
+    }
+    message.error('创建扩图任务失败：' + (res.data.message || '未获取到任务编号'))
+  } catch (error: any) {
+    message.error('创建扩图任务失败：' + (error?.message || '未知错误'))
   }
 }
 
-// 轮询定时器
-let pollingTimer: NodeJS.Timeout = null
-
-// 开始轮询
-const startPolling = () => {
-  if (!taskId.value) {
-    return
-  }
-
+const startPolling = (currentTaskId: string) => {
+  clearPolling(false)
+  taskId.value = currentTaskId
   pollingTimer = setInterval(async () => {
     try {
       const res = await getPictureOutPaintingTaskUsingGet({
-        taskId: taskId.value,
+        taskId: currentTaskId,
       })
-      if (res.data.code === 200 && res.data.data) {
-        const taskResult = res.data.data.output
-        if (taskResult.taskStatus === 'SUCCEEDED') {
-          message.success('扩图任务执行成功')
-          resultImageUrl.value = taskResult.outputImageUrl
-          // 清理轮询
-          clearPolling()
-        } else if (taskResult.taskStatus === 'FAILED') {
-          message.error('扩图任务执行失败')
-          // 清理轮询
-          clearPolling()
-        }
+      const taskResult = res.data.data?.output
+      if (res.data.code !== 200 || !taskResult) {
+        return
       }
-    } catch (error) {
+      if (taskResult.taskStatus === 'SUCCEEDED') {
+        resultImageUrl.value = taskResult.outputImageUrl ?? ''
+        if (resultImageUrl.value) {
+          message.success('扩图任务执行成功')
+        } else {
+          message.warning('扩图任务已完成，但未返回结果图片')
+        }
+        clearPolling()
+      } else if (taskResult.taskStatus === 'FAILED') {
+        message.error('扩图任务执行失败')
+        clearPolling()
+      }
+    } catch (error: any) {
       console.error('扩图任务轮询失败', error)
-      message.error('扩图任务轮询失败，' + error.message)
-      // 清理轮询
+      message.error('扩图任务轮询失败：' + (error?.message || '未知错误'))
       clearPolling()
     }
-  }, 3000) // 每 3 秒轮询一次
+  }, 3000)
 }
 
-// 清理轮询
-const clearPolling = () => {
+const clearPolling = (resetTaskId = true) => {
   if (pollingTimer) {
     clearInterval(pollingTimer)
     pollingTimer = null
-    taskId.value = null
+  }
+  if (resetTaskId) {
+    taskId.value = undefined
   }
 }
 
-// 是否正在上传
-const uploadLoading = ref(false)
-
-/**
- * 上传图片
- * @param file
- */
 const handleUpload = async () => {
+  if (!resultImageUrl.value) {
+    return
+  }
   uploadLoading.value = true
   try {
     const params: API.PictureUploadRequest = {
       fileUrl: resultImageUrl.value,
       spaceId: props.spaceId,
     }
-    if (props.picture) {
+    if (props.picture?.id) {
       params.id = props.picture.id
     }
     const res = await uploadPictureByUrlUsingPost(params)
     if (res.data.code === 200 && res.data.data) {
       message.success('图片上传成功')
-      // 将上传成功的图片信息传递给父组件
       props.onSuccess?.(res.data.data)
-      // 关闭弹窗
       closeModal()
     } else {
-      message.error('图片上传失败，' + res.data.message)
+      message.error('图片上传失败：' + res.data.message)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('图片上传失败', error)
-    message.error('图片上传失败，' + error.message)
+    message.error('图片上传失败：' + (error?.message || '未知错误'))
   }
   uploadLoading.value = false
 }
 
-// 是否可见
-const visible = ref(false)
-
-// 打开弹窗
 const openModal = () => {
   visible.value = true
 }
 
-// 关闭弹窗
 const closeModal = () => {
+  clearPolling()
   visible.value = false
 }
 
-// 暴露函数给父组件
+onUnmounted(() => {
+  clearPolling()
+})
+
 defineExpose({
   openModal,
 })
