@@ -1,30 +1,41 @@
-<template>
+﻿<template>
   <div id="addPicturePage">
     <h2 style="margin-bottom: 16px">
-      {{ route.query?.id ? '修改图片' : '创建图片' }}
+      {{ isEditMode ? '修改图片' : '创建图片' }}
     </h2>
     <a-typography-paragraph v-if="spaceId" type="secondary">
       保存至空间：<a :href="`/space/${spaceId}`" target="_blank">{{ spaceId }}</a>
     </a-typography-paragraph>
-    <!-- 选择上传方式 -->
+    <a-alert
+      v-if="isEditMode && picture && !canEditCurrentPicture"
+      type="warning"
+      show-icon
+      message="当前图片不支持编辑"
+      description="公共图库中的图片仅管理员可以编辑或删除。"
+      style="margin-bottom: 16px"
+    />
+
     <a-tabs v-model:activeKey="uploadType">
       <a-tab-pane key="file" tab="文件上传">
-        <!-- 图片上传组件 -->
         <PictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
       </a-tab-pane>
       <a-tab-pane key="url" tab="URL 上传" force-render>
-        <!-- URL 图片上传组件 -->
         <UrlPictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
       </a-tab-pane>
     </a-tabs>
-    <div class="ai-bar">
+
+    <div v-if="!isEditMode || canEditCurrentPicture" class="ai-bar">
       <a-button type="primary" ghost :icon="h(BulbOutlined)" @click="doTextGenerate">
         AI 文生图
       </a-button>
     </div>
-    <ImageTextGenerate ref="imageTextGenerateRef" :spaceId="spaceId" :onSuccess="onTextGenerateSuccess" />
-    <!-- 图片编辑 -->
-    <div v-if="picture" class="edit-bar">
+    <ImageTextGenerate
+      ref="imageTextGenerateRef"
+      :spaceId="spaceId"
+      :onSuccess="onTextGenerateSuccess"
+    />
+
+    <div v-if="picture && canEditCurrentPicture" class="edit-bar">
       <a-space size="middle">
         <a-button :icon="h(EditOutlined)" @click="doEditPicture">编辑图片</a-button>
         <a-button type="primary" :icon="h(FullscreenOutlined)" @click="doImagePainting">
@@ -33,7 +44,7 @@
       </a-space>
       <ImageCropper
         ref="imageCropperRef"
-        :imageUrl="picture?.url"
+        :imageUrl="picture.url"
         :picture="picture"
         :spaceId="spaceId"
         :space="space"
@@ -46,9 +57,9 @@
         :onSuccess="onImageOutPaintingSuccess"
       />
     </div>
-    <!-- 图片信息表单 -->
+
     <a-form
-      v-if="picture"
+      v-if="picture && canEditCurrentPicture"
       name="pictureForm"
       layout="vertical"
       :model="pictureForm"
@@ -83,7 +94,9 @@
         />
       </a-form-item>
       <a-form-item>
-        <a-button type="primary" html-type="submit" style="width: 100%">创建</a-button>
+        <a-button type="primary" html-type="submit" style="width: 100%">
+          {{ isEditMode ? '保存修改' : '创建' }}
+        </a-button>
       </a-form-item>
     </a-form>
   </div>
@@ -91,6 +104,10 @@
 
 <script setup lang="ts">
 import PictureUpload from '@/components/PictureUpload.vue'
+import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
+import ImageCropper from '@/components/ImageCropper.vue'
+import ImageOutPainting from '@/components/ImageOutPainting.vue'
+import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { computed, h, onMounted, reactive, ref, watchEffect } from 'vue'
 import { message } from 'ant-design-vue'
 import {
@@ -99,12 +116,9 @@ import {
   listPictureTagCategoryUsingGet,
 } from '@/api/pictureController.ts'
 import { useRoute, useRouter } from 'vue-router'
-import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
-import ImageCropper from '@/components/ImageCropper.vue'
 import { BulbOutlined, EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
-import ImageOutPainting from '@/components/ImageOutPainting.vue'
-import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
+import { SPACE_PERMISSION_ENUM } from '@/constants/space.ts'
 
 const router = useRouter()
 const route = useRoute()
@@ -112,27 +126,23 @@ const route = useRoute()
 const picture = ref<API.PictureVO>()
 const pictureForm = reactive<API.PictureEditRequest>({})
 const uploadType = ref<'file' | 'url'>('file')
-// 空间 id
-const spaceId = computed(() => {
-  return route.query?.spaceId
+const isEditMode = computed(() => Boolean(route.query?.id))
+const spaceId = computed(() => route.query?.spaceId as string | undefined)
+
+const canEditCurrentPicture = computed(() => {
+  if (!isEditMode.value) {
+    return true
+  }
+  return (picture.value?.permissionList ?? []).includes(SPACE_PERMISSION_ENUM.PICTURE_EDIT)
 })
 
-/**
- * 图片上传成功
- * @param newPicture
- */
 const onSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
   pictureForm.name = newPicture.name
 }
 
-/**
- * 提交表单
- * @param values
- */
-const handleSubmit = async (values: any) => {
-  console.log(values)
-  const pictureId = picture.value.id
+const handleSubmit = async (values: API.PictureEditRequest) => {
+  const pictureId = picture.value?.id
   if (!pictureId) {
     return
   }
@@ -141,42 +151,32 @@ const handleSubmit = async (values: any) => {
     spaceId: spaceId.value,
     ...values,
   })
-  // 操作成功
   if (res.data.code === 200 && res.data.data) {
-    message.success('创建成功')
-    // 跳转到图片详情页
-    router.push({
+    message.success(isEditMode.value ? '修改成功' : '创建成功')
+    await router.push({
       path: `/picture/${pictureId}`,
     })
   } else {
-    message.error('创建失败，' + res.data.message)
+    message.error((isEditMode.value ? '修改失败：' : '创建失败：') + res.data.message)
   }
 }
 
-const categoryOptions = ref<string[]>([])
-const tagOptions = ref<string[]>([])
+const categoryOptions = ref<{ value: string; label: string }[]>([])
+const tagOptions = ref<{ value: string; label: string }[]>([])
 
-/**
- * 获取标签和分类选项
- * @param values
- */
 const getTagCategoryOptions = async () => {
   const res = await listPictureTagCategoryUsingGet()
   if (res.data.code === 200 && res.data.data) {
-    tagOptions.value = (res.data.data.tagList ?? []).map((data: string) => {
-      return {
-        value: data,
-        label: data,
-      }
-    })
-    categoryOptions.value = (res.data.data.categoryList ?? []).map((data: string) => {
-      return {
-        value: data,
-        label: data,
-      }
-    })
+    tagOptions.value = (res.data.data.tagList ?? []).map((data: string) => ({
+      value: data,
+      label: data,
+    }))
+    categoryOptions.value = (res.data.data.categoryList ?? []).map((data: string) => ({
+      value: data,
+      label: data,
+    }))
   } else {
-    message.error('获取标签分类列表失败，' + res.data.message)
+    message.error('获取标签分类列表失败：' + res.data.message)
   }
 }
 
@@ -184,22 +184,23 @@ onMounted(() => {
   getTagCategoryOptions()
 })
 
-// 获取老数据
 const getOldPicture = async () => {
-  // 获取到 id
   const id = route.query?.id
-  if (id) {
-    const res = await getPictureVoByIdUsingGet({
-      id,
-    })
-    if (res.data.code === 200 && res.data.data) {
-      const data = res.data.data
-      picture.value = data
-      pictureForm.name = data.name
-      pictureForm.introduction = data.introduction
-      pictureForm.category = data.category
-      pictureForm.tags = data.tags
-    }
+  if (!id) {
+    return
+  }
+  const res = await getPictureVoByIdUsingGet({
+    id,
+  })
+  if (res.data.code === 200 && res.data.data) {
+    const data = res.data.data
+    picture.value = data
+    pictureForm.name = data.name
+    pictureForm.introduction = data.introduction
+    pictureForm.category = data.category
+    pictureForm.tags = data.tags
+  } else {
+    message.error('获取图片信息失败：' + res.data.message)
   }
 }
 
@@ -207,33 +208,26 @@ onMounted(() => {
   getOldPicture()
 })
 
-// ----- 图片编辑器引用 ------
 const imageCropperRef = ref()
 
-// 编辑图片
 const doEditPicture = async () => {
   imageCropperRef.value?.openModal()
 }
 
-// 编辑成功事件
 const onCropSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
 }
 
-// ----- AI 扩图引用 -----
 const imageOutPaintingRef = ref()
 
-// 打开 AI 扩图弹窗
 const doImagePainting = async () => {
   imageOutPaintingRef.value?.openModal()
 }
 
-// AI 扩图保存事件
 const onImageOutPaintingSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
 }
 
-// ----- AI 文生图引用 -----
 const imageTextGenerateRef = ref()
 
 const doTextGenerate = async () => {
@@ -245,19 +239,17 @@ const onTextGenerateSuccess = (newPicture: API.PictureVO) => {
   pictureForm.name = newPicture.name
 }
 
-// 获取空间信息
 const space = ref<API.SpaceVO>()
 
-// 获取空间信息
 const fetchSpace = async () => {
-  // 获取数据
-  if (spaceId.value) {
-    const res = await getSpaceVoByIdUsingGet({
-      id: spaceId.value,
-    })
-    if (res.data.code === 200 && res.data.data) {
-      space.value = res.data.data
-    }
+  if (!spaceId.value) {
+    return
+  }
+  const res = await getSpaceVoByIdUsingGet({
+    id: spaceId.value,
+  })
+  if (res.data.code === 200 && res.data.data) {
+    space.value = res.data.data
   }
 }
 
