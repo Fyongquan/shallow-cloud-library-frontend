@@ -1,7 +1,7 @@
 ﻿<template>
   <div id="addPicturePage">
     <h2 style="margin-bottom: 16px">
-      {{ isEditMode ? '修改图片' : '创建图片' }}
+      {{ isEditMode ? '修改图片' : '上传图片' }}
     </h2>
     <a-typography-paragraph v-if="spaceId" type="secondary">
       保存至空间：<a :href="`/space/${spaceId}`">{{ spaceId }}</a>
@@ -23,17 +23,6 @@
         <UrlPictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
       </a-tab-pane>
     </a-tabs>
-
-    <div v-if="!isEditMode || canEditCurrentPicture" class="ai-bar">
-      <a-button type="primary" ghost :icon="h(BulbOutlined)" @click="doTextGenerate">
-        AI 文生图
-      </a-button>
-    </div>
-    <ImageTextGenerate
-      ref="imageTextGenerateRef"
-      :spaceId="spaceId"
-      :onSuccess="onTextGenerateSuccess"
-    />
 
     <div v-if="picture && canEditCurrentPicture" class="edit-bar">
       <a-space size="middle">
@@ -107,7 +96,6 @@ import PictureUpload from '@/components/PictureUpload.vue'
 import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
 import ImageOutPainting from '@/components/ImageOutPainting.vue'
-import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { computed, h, onMounted, reactive, ref, watchEffect } from 'vue'
 import { message } from 'ant-design-vue'
 import {
@@ -116,7 +104,7 @@ import {
   listPictureTagCategoryUsingGet,
 } from '@/api/pictureController.ts'
 import { useRoute, useRouter } from 'vue-router'
-import { BulbOutlined, EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
 import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
 import { SPACE_PERMISSION_ENUM } from '@/constants/space.ts'
 
@@ -152,7 +140,7 @@ const handleSubmit = async (values: API.PictureEditRequest) => {
     ...values,
   })
   if (res.data.code === 200 && res.data.data) {
-    message.success(isEditMode.value ? '修改成功' : '创建成功')
+    message.success(isEditMode.value ? '修改成功' : '上传成功')
     await router.push({
       path: `/picture/${pictureId}`,
     })
@@ -228,17 +216,6 @@ const onImageOutPaintingSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
 }
 
-const imageTextGenerateRef = ref()
-
-const doTextGenerate = async () => {
-  imageTextGenerateRef.value?.openModal()
-}
-
-const onTextGenerateSuccess = (newPicture: API.PictureVO) => {
-  picture.value = newPicture
-  pictureForm.name = newPicture.name
-}
-
 const space = ref<API.SpaceVO>()
 
 const fetchSpace = async () => {
@@ -269,8 +246,4 @@ watchEffect(() => {
   margin: 16px 0;
 }
 
-#addPicturePage .ai-bar {
-  text-align: center;
-  margin: 16px 0;
-}
 </style>

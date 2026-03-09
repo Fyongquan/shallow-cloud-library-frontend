@@ -9,7 +9,15 @@
           type="primary"
           :href="`/add_picture?spaceId=${id}`"
         >
-          + 创建图片
+          + 上传图片
+        </a-button>
+        <a-button
+          v-if="canUploadPicture"
+          type="primary"
+          :icon="h(BulbOutlined)"
+          @click="doTextGenerate"
+        >
+          AI 文生图
         </a-button>
         <a-button
           v-if="canManageSpaceUser"
@@ -74,6 +82,11 @@
       :pictureList="dataList"
       :onSuccess="onBatchEditPictureSuccess"
     />
+    <ImageTextGenerate
+      ref="imageTextGenerateRef"
+      :spaceId="id"
+      :onSuccess="onTextGenerateSuccess"
+    />
   </div>
 </template>
 
@@ -91,7 +104,8 @@ import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import { ColorPicker } from 'vue3-colorpicker'
 import 'vue3-colorpicker/style.css'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
-import { BarChartOutlined, EditOutlined, TeamOutlined } from '@ant-design/icons-vue'
+import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
+import { BarChartOutlined, BulbOutlined, EditOutlined, TeamOutlined } from '@ant-design/icons-vue'
 import { SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '../constants/space.ts'
 
 interface Props {
@@ -222,6 +236,16 @@ const doBatchEdit = () => {
   if (batchEditPictureModalRef.value) {
     batchEditPictureModalRef.value.openModal()
   }
+}
+
+const imageTextGenerateRef = ref()
+
+const doTextGenerate = () => {
+  imageTextGenerateRef.value?.openModal()
+}
+
+const onTextGenerateSuccess = () => {
+  fetchData()
 }
 
 // 空间 id 改变时，必须重新获取数据

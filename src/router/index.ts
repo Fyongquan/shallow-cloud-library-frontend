@@ -63,7 +63,7 @@ const router = createRouter({
     },
     {
       path: '/add_picture',
-      name: '创建图片',
+      name: '上传图片',
       component: AddPicturePage,
     },
     {
