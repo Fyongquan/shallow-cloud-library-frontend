@@ -5,7 +5,7 @@
         <router-link to="/">
           <div class="title-bar">
             <img class="logo" src="../assets/logo.png" alt="logo" />
-            <div class="title">浅云图库</div>
+            <div class="title">浅度云图库</div>
           </div>
         </router-link>
       </a-col>
@@ -23,10 +23,7 @@
             <a-dropdown>
               <a-space class="user-dropdown-trigger">
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-                <span
-                  class="user-name"
-                  :title="loginUserStore.loginUser.userName ?? '无名'"
-                >
+                <span class="user-name" :title="loginUserStore.loginUser.userName ?? '无名'">
                   {{ loginUserStore.loginUser.userName ?? '无名' }}
                 </span>
               </a-space>
@@ -53,7 +50,7 @@
             </a-dropdown>
           </div>
           <div v-else>
-            <a-button type="primary" href="/user/login">登录</a-button>
+            <a-button type="primary" @click="router.push('/user/login')">登录</a-button>
           </div>
         </div>
       </a-col>
@@ -98,11 +95,6 @@ const originItems = [
     key: '/admin/spaceManage',
     label: '空间管理',
     title: '空间管理',
-  },
-  {
-    key: 'others',
-    label: h('a', { href: 'https://www.codefather.cn', target: '_blank' }, '编程导航'),
-    title: '编程导航',
   },
 ]
 

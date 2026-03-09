@@ -81,7 +81,12 @@ const doClickPicture = (picture: API.PictureVO) => {
 
 const doSearch = (picture, e) => {
   e.stopPropagation()
-  window.open(`/search_picture?pictureId=${picture.id}`)
+  router.push({
+    path: '/search_picture',
+    query: {
+      pictureId: picture.id,
+    },
+  })
 }
 
 const doEdit = (picture, e) => {
