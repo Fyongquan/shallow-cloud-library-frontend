@@ -45,34 +45,22 @@
               {{ formatSize(picture.picSize) }}
             </a-descriptions-item>
             <a-descriptions-item label="主色调">
-              <a-space>
-                {{ picture.picColor ?? '-' }}
-                <div
-                  v-if="picture.picColor"
-                  :style="{
-                    width: '16px',
-                    height: '16px',
-                    backgroundColor: toHexColor(picture.picColor),
-                  }"
+              <a-space v-if="picture.picColor" :size="8" class="color-chip color-chip-main">
+                <span
+                  class="color-block color-block-main"
+                  :style="{ backgroundColor: toHexColor(picture.picColor) }"
                 />
+                <span>{{ picture.picColor }}</span>
               </a-space>
+              <template v-else>-</template>
             </a-descriptions-item>
             <a-descriptions-item label="代表色">
-              <a-space wrap>
+              <a-space wrap :size="[8, 8]">
                 <template v-if="picture.picColorPalette?.length">
-                  <a-tag v-for="color in picture.picColorPalette" :key="color">
-                    <a-space :size="4">
-                      <div
-                        :style="{
-                          width: '12px',
-                          height: '12px',
-                          backgroundColor: toHexColor(color),
-                          borderRadius: '2px',
-                        }"
-                      />
-                      {{ color }}
-                    </a-space>
-                  </a-tag>
+                  <div v-for="color in picture.picColorPalette" :key="color" class="color-chip">
+                    <span class="color-block" :style="{ backgroundColor: toHexColor(color) }" />
+                    <span>{{ color }}</span>
+                  </div>
                 </template>
                 <template v-else>-</template>
               </a-space>
@@ -220,5 +208,34 @@ const doShare = async () => {
 <style scoped>
 #pictureDetailPage {
   margin-bottom: 16px;
+}
+
+.color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 999px;
+  background: #fafafa;
+  line-height: 1;
+}
+
+.color-chip-main {
+  padding: 6px 12px;
+}
+
+.color-block {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.color-block-main {
+  width: 18px;
+  height: 18px;
 }
 </style>

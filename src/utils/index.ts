@@ -1,4 +1,4 @@
-import { saveAs } from 'file-saver'
+﻿import { saveAs } from 'file-saver'
 
 /**
  * 格式化文件大小
@@ -25,16 +25,26 @@ export function downloadImage(url?: string, fileName?: string) {
 
 /**
  * 将颜色值转换为标准 #RRGGBB 格式
- * @param input
+ * 支持 #RRGGBB / #RGB / 0xRRGGBB / RRGGBB
  */
 export function toHexColor(input: string) {
-  // 去掉 0x 前缀
-  const colorValue = input.startsWith('0x') ? input.slice(2) : input
-
-  // 将剩余部分解析为十六进制数，再转成 6 位十六进制字符串
-  const hexColor = parseInt(colorValue, 16).toString(16).padStart(6, '0')
-
-  // 返回标准 #RRGGBB 格式
-  return `#${hexColor}`
+  if (!input) {
+    return '#000000'
+  }
+  let colorValue = input.trim()
+  if (colorValue.startsWith('#')) {
+    colorValue = colorValue.slice(1)
+  } else if (colorValue.startsWith('0x') || colorValue.startsWith('0X')) {
+    colorValue = colorValue.slice(2)
+  }
+  if (colorValue.length === 3) {
+    colorValue = colorValue
+      .split('')
+      .map((char) => char + char)
+      .join('')
+  }
+  if (!/^[0-9a-fA-F]{6}$/.test(colorValue)) {
+    return '#000000'
+  }
+  return `#${colorValue.toUpperCase()}`
 }
-
