@@ -1,6 +1,5 @@
-/**
+﻿/**
  * 图片审核状态
- * @author 程序员鱼皮 <a href="https://www.codefather.cn">编程导航原创项目</a>
  */
 export const PIC_REVIEW_STATUS_ENUM = {
   REVIEWING: 0,
@@ -9,7 +8,7 @@ export const PIC_REVIEW_STATUS_ENUM = {
 }
 
 /**
- * 图片审核状态文案
+ * 图片审核状态文本映射
  */
 export const PIC_REVIEW_STATUS_MAP = {
   0: '待审核',
@@ -33,21 +32,23 @@ export const PIC_REVIEW_STATUS_OPTIONS = Object.keys(PIC_REVIEW_STATUS_MAP).map(
 export const PICTURE_EDIT_MESSAGE_TYPE_ENUM = {
   INFO: 'INFO',
   ERROR: 'ERROR',
+  SYNC_STATUS: 'SYNC_STATUS',
   ENTER_EDIT: 'ENTER_EDIT',
   EXIT_EDIT: 'EXIT_EDIT',
   EDIT_ACTION: 'EDIT_ACTION',
-};
+}
 
 /**
  * 图片编辑消息类型映射
  */
 export const PICTURE_EDIT_MESSAGE_TYPE_MAP = {
-  INFO: '发送通知',
-  ERROR: '发送错误',
+  INFO: '通知',
+  ERROR: '错误',
+  SYNC_STATUS: '同步状态',
   ENTER_EDIT: '进入编辑状态',
   EXIT_EDIT: '退出编辑状态',
   EDIT_ACTION: '执行编辑操作',
-};
+}
 
 /**
  * 图片编辑操作枚举
@@ -57,14 +58,14 @@ export const PICTURE_EDIT_ACTION_ENUM = {
   ZOOM_OUT: 'ZOOM_OUT',
   ROTATE_LEFT: 'ROTATE_LEFT',
   ROTATE_RIGHT: 'ROTATE_RIGHT',
-};
+}
 
 /**
  * 图片编辑操作映射
  */
 export const PICTURE_EDIT_ACTION_MAP = {
-  ZOOM_IN: '放大操作',
-  ZOOM_OUT: '缩小操作',
-  ROTATE_LEFT: '左旋操作',
-  ROTATE_RIGHT: '右旋操作',
-};
+  ZOOM_IN: '放大',
+  ZOOM_OUT: '缩小',
+  ROTATE_LEFT: '向左旋转',
+  ROTATE_RIGHT: '向右旋转',
+}

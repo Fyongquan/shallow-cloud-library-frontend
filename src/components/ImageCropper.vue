@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <a-modal
     class="image-cropper"
     v-model:visible="visible"
@@ -6,7 +6,36 @@
     :footer="false"
     @cancel="closeModal"
   >
-    <!-- 图片裁切组件 -->
+    <div v-if="isTeamSpace" class="collab-panel">
+      <div class="collab-row">
+        <span class="collab-label">在线成员</span>
+        <a-space wrap>
+          <a-tag v-for="user in onlineUsers" :key="user.id" class="member-tag">
+            <a-avatar :size="20" :src="user.userAvatar">
+              {{ user.userName?.slice(0, 1) || '图' }}
+            </a-avatar>
+            <span>{{ user.userName }}</span>
+            <span v-if="isCurrentUser(user)">（我）</span>
+          </a-tag>
+          <span v-if="!onlineUsers.length" class="empty-text">当前暂无其他在线成员</span>
+        </a-space>
+      </div>
+      <a-alert
+        v-if="editingUser"
+        class="editing-alert"
+        :type="isCurrentUser(editingUser) ? 'success' : 'warning'"
+        show-icon
+        :message="isCurrentUser(editingUser) ? '你正在编辑当前图片' : `${editingUser.userName} 正在编辑当前图片`"
+      />
+      <a-alert
+        v-else
+        class="editing-alert"
+        type="info"
+        show-icon
+        message="当前暂无成员正在编辑这张图片"
+      />
+    </div>
+
     <vue-cropper
       ref="cropperRef"
       :img="imageUrl"
@@ -17,25 +46,29 @@
       :auto-crop="true"
       :center-box="true"
     />
-    <div style="margin-bottom: 16px" />
-    <!-- 协同编辑操作 -->
+
+    <div class="toolbar-gap" />
+
     <div class="image-edit-actions" v-if="isTeamSpace">
-      <a-space>
-        <a-button v-if="editingUser" disabled>{{ editingUser.userName }} 正在编辑</a-button>
+      <a-space wrap>
+        <a-button v-if="editingUser && !isCurrentUser(editingUser)" disabled>
+          {{ editingUser.userName }} 正在编辑
+        </a-button>
         <a-button v-if="canEnterEdit" type="primary" ghost @click="enterEdit">进入编辑</a-button>
         <a-button v-if="canExitEdit" danger ghost @click="exitEdit">退出编辑</a-button>
       </a-space>
     </div>
-    <div style="margin-bottom: 16px" />
-    <!-- 图片操作 -->
+
+    <div class="toolbar-gap" />
+
     <div class="image-cropper-actions">
-      <a-space>
-        <a-button @click="rotateLeft" :disabled="!canEdit">向左旋转</a-button>
-        <a-button @click="rotateRight" :disabled="!canEdit">向右旋转</a-button>
-        <a-button @click="changeScale(1)" :disabled="!canEdit">放大</a-button>
-        <a-button @click="changeScale(-1)" :disabled="!canEdit">缩小</a-button>
-        <a-button type="primary" :loading="loading" :disabled="!canEdit" @click="handleConfirm"
-          >确认
+      <a-space wrap>
+        <a-button @click="handleRotateLeft" :disabled="!canEdit">向左旋转</a-button>
+        <a-button @click="handleRotateRight" :disabled="!canEdit">向右旋转</a-button>
+        <a-button @click="handleZoomIn" :disabled="!canEdit">放大</a-button>
+        <a-button @click="handleZoomOut" :disabled="!canEdit">缩小</a-button>
+        <a-button type="primary" :loading="loading" :disabled="!canEdit" @click="handleConfirm">
+          确认
         </a-button>
       </a-space>
     </div>
@@ -43,7 +76,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onUnmounted, ref, watchEffect } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { uploadPictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
@@ -61,54 +94,76 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// 是否为团队空间
-const isTeamSpace = computed(() => {
-  return props.space?.spaceType === SPACE_TYPE_ENUM.TEAM
+const visible = ref(false)
+const loading = ref(false)
+const cropperRef = ref()
+const onlineUsers = ref<API.UserVO[]>([])
+const editingUser = ref<API.UserVO>()
+
+const loginUserStore = useLoginUserStore()
+const loginUser = loginUserStore.loginUser
+
+const isTeamSpace = computed(() => props.space?.spaceType === SPACE_TYPE_ENUM.TEAM)
+
+const canEnterEdit = computed(() => isTeamSpace.value && !editingUser.value)
+const canExitEdit = computed(() => Boolean(editingUser.value && isCurrentUser(editingUser.value)))
+const canEdit = computed(() => {
+  if (!isTeamSpace.value) {
+    return true
+  }
+  return Boolean(editingUser.value && isCurrentUser(editingUser.value))
 })
 
-// 获取图片裁切器的引用
-const cropperRef = ref()
+let websocket: PictureEditWebSocket | null = null
 
-// 缩放比例
-const changeScale = (num) => {
-  cropperRef.value?.changeScale(num)
-  if (num > 0) {
-    editAction(PICTURE_EDIT_ACTION_ENUM.ZOOM_IN)
-  } else {
-    editAction(PICTURE_EDIT_ACTION_ENUM.ZOOM_OUT)
+const isCurrentUser = (user?: API.UserVO) => {
+  if (!user?.id || !loginUser?.id) {
+    return false
   }
+  return String(user.id) === String(loginUser.id)
 }
 
-// 向左旋转
-const rotateLeft = () => {
-  cropperRef.value.rotateLeft()
-  editAction(PICTURE_EDIT_ACTION_ENUM.ROTATE_LEFT)
+const applyScale = (step: number) => {
+  cropperRef.value?.changeScale(step)
 }
 
-// 向右旋转
-const rotateRight = () => {
-  cropperRef.value.rotateRight()
-  editAction(PICTURE_EDIT_ACTION_ENUM.ROTATE_RIGHT)
+const applyRotateLeft = () => {
+  cropperRef.value?.rotateLeft()
 }
 
-// 确认裁切
+const applyRotateRight = () => {
+  cropperRef.value?.rotateRight()
+}
+
+const handleZoomIn = () => {
+  applyScale(1)
+  syncEditAction(PICTURE_EDIT_ACTION_ENUM.ZOOM_IN)
+}
+
+const handleZoomOut = () => {
+  applyScale(-1)
+  syncEditAction(PICTURE_EDIT_ACTION_ENUM.ZOOM_OUT)
+}
+
+const handleRotateLeft = () => {
+  applyRotateLeft()
+  syncEditAction(PICTURE_EDIT_ACTION_ENUM.ROTATE_LEFT)
+}
+
+const handleRotateRight = () => {
+  applyRotateRight()
+  syncEditAction(PICTURE_EDIT_ACTION_ENUM.ROTATE_RIGHT)
+}
+
 const handleConfirm = () => {
-  cropperRef.value.getCropBlob((blob: Blob) => {
-    // blob 为已经裁切好的文件
-    const fileName = (props.picture?.name || 'image') + '.png'
-    const file = new File([blob], fileName, { type: blob.type })
-    // 上传图片
-    handleUpload({ file })
+  cropperRef.value?.getCropBlob((blob: Blob) => {
+    const fileName = `${props.picture?.name || 'image'}.png`
+    const file = new File([blob], fileName, { type: blob.type || 'image/png' })
+    handleUpload(file)
   })
 }
 
-const loading = ref(false)
-
-/**
- * 上传图片
- * @param file
- */
-const handleUpload = async ({ file }: any) => {
+const handleUpload = async (file: File) => {
   loading.value = true
   try {
     const params: API.PictureUploadRequest = props.picture ? { id: props.picture.id } : {}
@@ -116,175 +171,140 @@ const handleUpload = async ({ file }: any) => {
     const res = await uploadPictureUsingPost(params, {}, file)
     if (res.data.code === 200 && res.data.data) {
       message.success('图片上传成功')
-      // 将上传成功的图片信息传递给父组件
       props.onSuccess?.(res.data.data)
       closeModal()
     } else {
-      message.error('图片上传失败，' + res.data.message)
+      message.error(`图片上传失败：${res.data.message}`)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('图片上传失败', error)
-    message.error('图片上传失败，' + error.message)
+    message.error(`图片上传失败：${error?.message || '请稍后重试'}`)
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
-// 是否可见
-const visible = ref(false)
-
-// 打开弹窗
-const openModal = () => {
-  visible.value = true
-}
-
-// 关闭弹窗
-const closeModal = () => {
-  visible.value = false
-  // 断开 WebSocket 连接
-  if (websocket) {
-    websocket.disconnect()
-  }
+const resetCollabState = () => {
+  onlineUsers.value = []
   editingUser.value = undefined
 }
 
-// 暴露函数给父组件
-defineExpose({
-  openModal,
-})
-
-// --------- 实时编辑 ---------
-const loginUserStore = useLoginUserStore()
-const loginUser = loginUserStore.loginUser
-
-// 正在编辑的用户
-const editingUser = ref<API.UserVO>()
-// 当前用户是否可进入编辑
-const canEnterEdit = computed(() => {
-  return !editingUser.value
-})
-// 正在编辑的用户是本人，可退出编辑
-const canExitEdit = computed(() => {
-  return editingUser.value?.id === loginUser.id
-})
-// 可以点击编辑图片的操作按钮
-const canEdit = computed(() => {
-  // 不是团队空间，默认就可以编辑
-  if (!isTeamSpace.value) {
-    return true
-  }
-  // 团队空间，只有编辑者才能协同编辑
-  return editingUser.value?.id === loginUser.id
-})
-
-// 编写 WebSocket 逻辑
-let websocket: PictureEditWebSocket | null
-
-// 初始化 WebSocket 连接，绑定监听事件
-const initWebsocket = () => {
-  const pictureId = props.picture?.id
-  if (!pictureId || !visible.value) {
-    return
-  }
-  // 防止之前的连接未释放
+const cleanupWebsocket = () => {
   if (websocket) {
     websocket.disconnect()
+    websocket = null
   }
-  // 创建 websocket 实例
+  resetCollabState()
+}
+
+const initWebsocket = () => {
+  const pictureId = props.picture?.id
+  if (!pictureId || !visible.value || !isTeamSpace.value) {
+    return
+  }
+  cleanupWebsocket()
   websocket = new PictureEditWebSocket(pictureId)
-  // 建立连接
   websocket.connect()
 
-  // 监听一系列的事件
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.INFO, (msg) => {
-    console.log('收到通知消息：', msg)
-    message.info(msg.message)
+    if (msg?.message) {
+      message.info(msg.message)
+    }
   })
 
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.ERROR, (msg) => {
-    console.log('收到错误通知：', msg)
-    message.info(msg.message)
+    if (msg?.message) {
+      message.warning(msg.message)
+    }
+  })
+
+  websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.SYNC_STATUS, (msg) => {
+    onlineUsers.value = msg?.onlineUsers || []
+    editingUser.value = msg?.editingUser
   })
 
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.ENTER_EDIT, (msg) => {
-    console.log('收到进入编辑状态的消息：', msg)
-    message.info(msg.message)
-    editingUser.value = msg.user
+    if (msg?.message) {
+      message.info(msg.message)
+    }
+    editingUser.value = msg?.user
   })
 
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.EDIT_ACTION, (msg) => {
-    console.log('收到编辑操作的消息：', msg)
-    message.info(msg.message)
-    // 根据收到的编辑操作，执行相应的操作
-    switch (msg.editAction) {
+    switch (msg?.editAction) {
       case PICTURE_EDIT_ACTION_ENUM.ROTATE_LEFT:
-        rotateLeft()
+        applyRotateLeft()
         break
       case PICTURE_EDIT_ACTION_ENUM.ROTATE_RIGHT:
-        rotateRight()
+        applyRotateRight()
         break
       case PICTURE_EDIT_ACTION_ENUM.ZOOM_IN:
-        changeScale(1)
+        applyScale(1)
         break
       case PICTURE_EDIT_ACTION_ENUM.ZOOM_OUT:
-        changeScale(-1)
+        applyScale(-1)
+        break
+      default:
         break
     }
   })
 
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.EXIT_EDIT, (msg) => {
-    console.log('收到退出编辑状态的消息：', msg)
-    message.info(msg.message)
+    if (msg?.message) {
+      message.info(msg.message)
+    }
     editingUser.value = undefined
   })
 }
 
-// 监听属性和 visible 变化，初始化 WebSocket 连接
-watchEffect(() => {
-  // 只有团队空间，才初始化 WebSocket 连接
-  if (isTeamSpace.value) {
-    initWebsocket()
+watch(
+  () => [visible.value, props.picture?.id, isTeamSpace.value],
+  ([currentVisible, currentPictureId, currentIsTeamSpace]) => {
+    if (currentVisible && currentPictureId && currentIsTeamSpace) {
+      initWebsocket()
+      return
+    }
+    cleanupWebsocket()
   }
-})
+)
 
-// 组件销毁时，断开 WebSocket 连接
 onUnmounted(() => {
-  // 断开 WebSocket 连接
-  if (websocket) {
-    websocket.disconnect()
-  }
-  editingUser.value = undefined
+  cleanupWebsocket()
 })
 
-// 进入编辑状态
+const openModal = () => {
+  visible.value = true
+}
+
+const closeModal = () => {
+  visible.value = false
+}
+
 const enterEdit = () => {
-  if (websocket) {
-    // 发送进入编辑状态的请求
-    websocket.sendMessage({
-      type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.ENTER_EDIT,
-    })
-  }
+  websocket?.sendMessage({
+    type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.ENTER_EDIT,
+  })
 }
 
-// 退出编辑状态
 const exitEdit = () => {
-  if (websocket) {
-    // 发送退出编辑状态的请求
-    websocket.sendMessage({
-      type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.EXIT_EDIT,
-    })
-  }
+  websocket?.sendMessage({
+    type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.EXIT_EDIT,
+  })
 }
 
-// 编辑图片操作
-const editAction = (action: string) => {
-  if (websocket) {
-    // 发送编辑操作的请求
-    websocket.sendMessage({
-      type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.EDIT_ACTION,
-      editAction: action,
-    })
+const syncEditAction = (action: string) => {
+  if (!isTeamSpace.value || !canEdit.value) {
+    return
   }
+  websocket?.sendMessage({
+    type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.EDIT_ACTION,
+    editAction: action,
+  })
 }
+
+defineExpose({
+  openModal,
+})
 </script>
 
 <style>
@@ -294,5 +314,41 @@ const editAction = (action: string) => {
 
 .image-cropper .vue-cropper {
   height: 400px !important;
+}
+
+.collab-panel {
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.collab-row {
+  margin-bottom: 12px;
+}
+
+.collab-label {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+}
+
+.member-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+}
+
+.empty-text {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.editing-alert {
+  margin-bottom: 12px;
+}
+
+.toolbar-gap {
+  margin-bottom: 16px;
 }
 </style>
