@@ -46,14 +46,19 @@ const fixedMenuItems = [
 ]
 
 const teamSpaceList = ref<API.SpaceUserVO[]>([])
+const validTeamSpaceList = computed(() => {
+  return teamSpaceList.value.filter((spaceUser) => {
+    return Boolean(spaceUser.spaceId && spaceUser.space?.spaceName)
+  })
+})
 const menuItems = computed(() => {
   // 如果用户没有团队空间，则只展示固定菜单
-  if (teamSpaceList.value.length < 1) {
+  if (validTeamSpaceList.value.length < 1) {
     return fixedMenuItems
   }
   // 如果用户有团队空间，则展示固定菜单和团队空间菜单
   // 展示团队空间分组
-  const teamSpaceSubMenus = teamSpaceList.value.map((spaceUser) => {
+  const teamSpaceSubMenus = validTeamSpaceList.value.map((spaceUser) => {
     const space = spaceUser.space
     return {
       key: '/space/' + spaceUser.spaceId,
@@ -95,6 +100,9 @@ const current = ref<string[]>([])
 // 监听路由变化，更新高亮菜单项
 router.afterEach((to, from, next) => {
   current.value = [to.path]
+  if (loginUserStore.loginUser.id) {
+    fetchTeamSpaceList()
+  }
 })
 
 // 路由跳转事件
