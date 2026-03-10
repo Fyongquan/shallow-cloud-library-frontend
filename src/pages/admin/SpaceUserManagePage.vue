@@ -1,38 +1,51 @@
 <template>
   <div id="spaceManagePage">
-    <a-flex justify="space-between">
+    <a-flex justify="space-between" align="center" wrap="wrap" gap="middle">
       <h2>空间成员管理</h2>
-      <a-space>
+      <a-space wrap>
         <a-button type="primary" href="/add_space">+ 创建空间</a-button>
-        <a-button type="primary" ghost href="/space_analyze?queryPublic=1"
-          >分析公共图库
+        <a-button type="primary" ghost href="/space_analyze?queryPublic=1">
+          分析公共图库
         </a-button>
-        <a-button type="primary" ghost href="/space_analyze?queryAll=1"
-          >分析全部空间
+        <a-button type="primary" ghost href="/space_analyze?queryAll=1">
+          分析全部空间
         </a-button>
       </a-space>
     </a-flex>
+
     <div style="margin-bottom: 16px" />
-    <!-- 添加成员表单 -->
+
+    <a-alert
+      type="info"
+      show-icon
+      style="margin-bottom: 16px"
+      message="添加成员时，请让对方先在个人中心查看并复制自己的用户 ID。"
+    />
+
     <a-form layout="inline" :model="formData" @finish="handleSubmit">
-      <a-form-item label="用户 id" name="userId">
-        <a-input v-model:value="formData.userId" placeholder="请输入用户 id" allow-clear />
+      <a-form-item label="用户 ID" name="userId">
+        <a-input
+          v-model:value="formData.userId"
+          placeholder="请输入要添加的用户 ID"
+          allow-clear
+        />
       </a-form-item>
       <a-form-item>
         <a-button type="primary" html-type="submit">添加用户</a-button>
       </a-form-item>
     </a-form>
+
     <div style="margin-bottom: 16px" />
-    <!-- 表格 -->
-    <a-table :columns="columns" :data-source="dataList">
+
+    <a-table :columns="columns" :data-source="dataList" row-key="id">
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'userInfo'">
           <a-space>
             <a-avatar :src="record.user?.userAvatar" />
-            {{ record.user?.userName }}
+            <span>{{ record.user?.userName || '未命名用户' }}</span>
           </a-space>
         </template>
-        <template v-if="column.dataIndex === 'spaceRole'">
+        <template v-else-if="column.dataIndex === 'spaceRole'">
           <a-select
             v-model:value="record.spaceRole"
             :options="SPACE_ROLE_OPTIONS"
@@ -51,17 +64,18 @@
     </a-table>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { SPACE_ROLE_OPTIONS } from '../../constants/space.ts'
+import dayjs from 'dayjs'
+import { SPACE_ROLE_OPTIONS } from '@/constants/space'
 import {
   addSpaceUserUsingPost,
   deleteSpaceUserUsingPost,
   editSpaceUserUsingPost,
   listSpaceUserUsingPost,
-} from '@/api/spaceUserController.ts'
-import dayjs from 'dayjs'
+} from '@/api/spaceUserController'
 
 interface Props {
   id: string
@@ -88,10 +102,11 @@ const columns = [
   },
 ]
 
-// 定义数据
 const dataList = ref<API.SpaceUserVO[]>([])
+const formData = reactive<API.SpaceUserAddRequest>({
+  userId: undefined,
+})
 
-// 获取数据
 const fetchData = async () => {
   const spaceId = props.id
   if (!spaceId) {
@@ -103,19 +118,14 @@ const fetchData = async () => {
   if (res.data.code === 200 && res.data.data) {
     dataList.value = res.data.data ?? []
   } else {
-    message.error('获取数据失败，' + res.data.message)
+    message.error(`获取成员数据失败：${res.data.message}`)
   }
 }
 
-// 页面加载时获取数据，请求一次
 onMounted(() => {
   fetchData()
 })
 
-// 添加成员表单
-const formData = reactive<API.SpaceUserAddRequest>({})
-
-// 创建成员
 const handleSubmit = async () => {
   const spaceId = props.id
   if (!spaceId) {
@@ -126,39 +136,36 @@ const handleSubmit = async () => {
     ...formData,
   })
   if (res.data.code === 200) {
-    message.success('添加成功')
-    // 刷新数据
-    fetchData()
+    message.success('成员添加成功')
+    formData.userId = undefined
+    await fetchData()
   } else {
-    message.error('添加失败，' + res.data.message)
+    message.error(`成员添加失败：${res.data.message}`)
   }
 }
 
-// 编辑成员角色
-const editSpaceRole = async (value, record) => {
+const editSpaceRole = async (value: string, record: API.SpaceUserVO) => {
   const res = await editSpaceUserUsingPost({
     id: record.id,
     spaceRole: value,
   })
   if (res.data.code === 200) {
-    message.success('修改成功')
+    message.success('成员角色修改成功')
   } else {
-    message.error('修改失败，' + res.data.message)
+    message.error(`成员角色修改失败：${res.data.message}`)
   }
 }
 
-// 删除数据
-const doDelete = async (id: string) => {
+const doDelete = async (id?: string) => {
   if (!id) {
     return
   }
   const res = await deleteSpaceUserUsingPost({ id })
   if (res.data.code === 200) {
-    message.success('删除成功')
-    // 刷新数据
-    fetchData()
+    message.success('成员移除成功')
+    await fetchData()
   } else {
-    message.error('删除失败')
+    message.error('成员移除失败')
   }
 }
 </script>

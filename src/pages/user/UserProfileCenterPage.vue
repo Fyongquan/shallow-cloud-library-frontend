@@ -3,6 +3,22 @@
     <a-card title="个人中心" :bordered="false">
       <a-tabs v-model:activeKey="activeTab">
         <a-tab-pane key="profile" tab="资料设置">
+          <a-alert
+            type="info"
+            show-icon
+            style="margin-bottom: 16px"
+            message="你的用户 ID 可用于加入团队空间时被管理员添加，请妥善保存。"
+          >
+            <template #description>
+              <a-space wrap>
+                <span>当前用户 ID：{{ loginUserStore.loginUser.id || '-' }}</span>
+                <a-button size="small" @click="copyUserId" :disabled="!loginUserStore.loginUser.id">
+                  复制 ID
+                </a-button>
+              </a-space>
+            </template>
+          </a-alert>
+
           <a-form layout="vertical" :model="profileForm" @finish="saveProfile">
             <a-form-item
               label="用户昵称"
@@ -11,6 +27,7 @@
             >
               <a-input v-model:value="profileForm.userName" placeholder="请输入用户昵称" />
             </a-form-item>
+
             <a-form-item label="头像设置">
               <a-space direction="vertical" style="width: 100%">
                 <a-space>
@@ -18,15 +35,16 @@
                     {{ profileForm.userName?.slice(0, 1) || '用' }}
                   </a-avatar>
                   <a-space>
-                    <a-button type="primary" @click="openAvatarModal">从我的图片选择</a-button>
+                    <a-button type="primary" @click="openAvatarModal">从我的图片中选择</a-button>
                     <a-button @click="clearAvatar">清空头像</a-button>
                   </a-space>
                 </a-space>
                 <div class="avatar-tip">
-                  选择图片后可以继续裁剪，最终会把裁剪后的头像地址直接保存到用户资料中。
+                  选择图片后可以继续裁剪，最终会将头像地址直接保存到用户资料中。
                 </div>
               </a-space>
             </a-form-item>
+
             <a-form-item label="个人简介" name="userProfile">
               <a-textarea
                 v-model:value="profileForm.userProfile"
@@ -36,6 +54,7 @@
                 placeholder="请输入个人简介"
               />
             </a-form-item>
+
             <a-form-item>
               <a-button type="primary" html-type="submit" :loading="profileLoading">
                 保存资料
@@ -46,10 +65,10 @@
 
         <a-tab-pane key="password" tab="修改密码">
           <a-alert
-            type="info"
+            type="warning"
             show-icon
-            message="修改密码后不会自动退出登录，下次登录请使用新密码。"
             style="margin-bottom: 16px"
+            message="修改密码成功后将自动退出登录，请使用新密码重新登录。"
           />
           <a-form layout="vertical" :model="passwordForm" @finish="savePassword">
             <a-form-item
@@ -175,14 +194,17 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import {
   updateMyUserPasswordUsingPost,
   updateMyUserUsingPost,
   uploadUserAvatarUsingPost,
+  userLogoutUsingPost,
 } from '@/api/userController'
 import { listMyPictureVoByPageUsingPost } from '@/api/pictureController'
 
+const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const activeTab = ref('profile')
 const profileLoading = ref(false)
@@ -217,6 +239,20 @@ const syncProfileForm = () => {
   profileForm.userProfile = loginUser.userProfile ?? ''
 }
 
+const copyUserId = async () => {
+  const userId = loginUserStore.loginUser.id
+  if (!userId) {
+    message.warning('当前暂无可复制的用户 ID')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(String(userId))
+    message.success('用户 ID 已复制')
+  } catch {
+    message.error('复制失败，请手动记录用户 ID')
+  }
+}
+
 const loadAvatarPictures = async (current = 1) => {
   avatarLoading.value = true
   try {
@@ -232,7 +268,7 @@ const loadAvatarPictures = async (current = 1) => {
       avatarTotal.value = Number(res.data.data.total ?? 0)
       return
     }
-    message.error(`加载头像图片失败，${res.data.message}`)
+    message.error(`加载头像图片失败：${res.data.message}`)
   } finally {
     avatarLoading.value = false
   }
@@ -252,15 +288,8 @@ const changeAvatarPage = async (page: number) => {
   await loadAvatarPictures(page)
 }
 
-const buildCropImageUrl = (imageUrl?: string) => {
-  if (!imageUrl) {
-    return ''
-  }
-  return imageUrl
-}
-
 const selectAvatarPicture = (picture: API.PictureVO) => {
-  cropSourceUrl.value = buildCropImageUrl(picture.url ?? picture.thumbnailUrl ?? '')
+  cropSourceUrl.value = picture.url ?? picture.thumbnailUrl ?? ''
   avatarModalOpen.value = false
   cropModalOpen.value = true
 }
@@ -288,9 +317,9 @@ const confirmCrop = async () => {
       message.success('头像裁剪上传成功')
       return
     }
-    message.error(`头像上传失败，${res.data.message}`)
+    message.error(`头像上传失败：${res.data.message}`)
   } catch (error: any) {
-    message.error(`头像上传失败，${error?.message ?? '请稍后重试'}`)
+    message.error(`头像上传失败：${error?.message ?? '请稍后重试'}`)
   } finally {
     cropUploading.value = false
   }
@@ -312,9 +341,10 @@ const saveProfile = async () => {
       message.success('个人资料已更新')
       await loginUserStore.fetchLoginUser()
       syncProfileForm()
+      await router.push('/')
       return
     }
-    message.error(`更新失败，${res.data.message}`)
+    message.error(`更新失败：${res.data.message}`)
   } finally {
     profileLoading.value = false
   }
@@ -333,14 +363,16 @@ const savePassword = async () => {
       checkPassword: passwordForm.checkPassword,
     })
     if (res.data.code === 200 && res.data.data) {
-      message.success('密码修改成功')
+      await userLogoutUsingPost()
+      loginUserStore.setLoginUser({ userName: '未登录' })
       passwordForm.oldPassword = ''
       passwordForm.newPassword = ''
       passwordForm.checkPassword = ''
-      activeTab.value = 'profile'
+      message.success('密码修改成功，请重新登录')
+      await router.replace('/user/login')
       return
     }
-    message.error(`修改失败，${res.data.message}`)
+    message.error(`修改失败：${res.data.message}`)
   } finally {
     passwordLoading.value = false
   }
