@@ -116,6 +116,7 @@ interface Props {
 const props = defineProps<Props>()
 const picture = ref<API.PictureVO>({})
 const route = useRoute()
+const router = useRouter()
 
 function createPermissionChecker(permission: string) {
   return computed(() => {
@@ -146,14 +147,13 @@ onMounted(() => {
   fetchPictureDetail()
 })
 
-const router = useRouter()
-
 const doEdit = () => {
   router.push({
     path: '/add_picture',
     query: {
       id: picture.value.id,
       spaceId: picture.value.spaceId,
+      from: (route.query.from as string | undefined) ?? undefined,
     },
   })
 }
@@ -166,6 +166,16 @@ const doDelete = async () => {
   const res = await deletePictureUsingPost({ id })
   if (res.data.code === 200) {
     message.success('删除成功')
+    const from = route.query.from as string | undefined
+    if (from) {
+      await router.push(from)
+      return
+    }
+    if (picture.value.spaceId) {
+      await router.push(`/space/${picture.value.spaceId}`)
+      return
+    }
+    await router.push('/')
   } else {
     message.error('删除失败')
   }

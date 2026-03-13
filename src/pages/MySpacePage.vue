@@ -1,51 +1,62 @@
-<template>
+﻿<template>
   <div id="mySpacePage">
-    <p>正在跳转，请稍后。。。</p>
+    <p>正在跳转，请稍后...</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
-import { listSpaceVoByPageUsingPost } from '@/api/spaceController.ts'
-import { message } from 'ant-design-vue'
 import { onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
+import { listSpaceVoByPageUsingPost } from '@/api/spaceController.ts'
 import { SPACE_TYPE_ENUM } from '@/constants/space.ts'
+import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 
 const router = useRouter()
+const route = useRoute()
 const loginUserStore = useLoginUserStore()
 
-// 检查用户是否有个人空间
 const checkUserSpace = async () => {
-  // 用户未登录，则直接跳转到登录页面
   const loginUser = loginUserStore.loginUser
   if (!loginUser?.id) {
-    router.replace('/user/login')
+    await router.replace('/user/login')
     return
   }
-  // 如果用户已登录，会获取该用户已创建的空间
+
   const res = await listSpaceVoByPageUsingPost({
     userId: loginUser.id,
     current: 1,
     pageSize: 1,
     spaceType: SPACE_TYPE_ENUM.PRIVATE,
   })
-  if (res.data.code === 200) {
-    // 如果有，则进入第一个空间
-    if (res.data.data?.records?.length > 0) {
-      const space = res.data.data.records[0]
-      router.replace(`/space/${space.id}`)
-    } else {
-      // 如果没有，则跳转到创建空间页面
-      router.replace('/add_space')
-      message.warn('请先创建空间')
-    }
-  } else {
-    message.error('加载我的空间失败，' + res.data.message)
+
+  if (res.data.code !== 200) {
+    message.error('加载我的空间失败：' + res.data.message)
+    return
   }
+
+  const space = res.data.data?.records?.[0]
+  if (!space?.id) {
+    message.warn('请先创建空间')
+    await router.replace('/add_space')
+    return
+  }
+
+  if (route.query.uploadToPublic === '1') {
+    await router.replace({
+      path: '/add_picture',
+      query: {
+        spaceId: String(space.id),
+        syncPublic: '1',
+        from: `/space/${space.id}`,
+      },
+    })
+    return
+  }
+
+  await router.replace(`/space/${space.id}`)
 }
 
-// 在页面加载时检查用户空间
 onMounted(() => {
   checkUserSpace()
 })

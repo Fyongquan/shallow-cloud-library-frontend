@@ -11,16 +11,45 @@
       type="warning"
       show-icon
       message="当前图片不支持编辑"
-      description="公共图库中的图片仅管理员可以编辑或删除。"
+      description="你当前没有这张图片的编辑权限。"
       style="margin-bottom: 16px"
     />
 
+    <a-alert
+      v-if="spaceId"
+      type="info"
+      show-icon
+      style="margin-bottom: 16px"
+      :message="pictureForm.publishToPublic ? '当前会同步到公共图库' : '当前仅保存在我的空间'"
+      :description="
+        pictureForm.publishToPublic
+          ? '勾选同步到公共图库后，普通用户上传或编辑都需要审核通过后才会显示在公共图库。'
+          : '不勾选时，图片只保存在当前空间中，不需要审核，也不会显示在公共图库。'
+      "
+    />
+
+    <a-form v-if="spaceId" layout="vertical" :model="pictureForm">
+      <a-form-item label="公开设置">
+        <a-checkbox v-model:checked="pictureForm.publishToPublic">同步到公共图库</a-checkbox>
+      </a-form-item>
+    </a-form>
+
     <a-tabs v-model:activeKey="uploadType">
       <a-tab-pane key="file" tab="文件上传">
-        <PictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
+        <PictureUpload
+          :picture="picture"
+          :spaceId="spaceId"
+          :publishToPublic="Boolean(pictureForm.publishToPublic)"
+          :onSuccess="onSuccess"
+        />
       </a-tab-pane>
       <a-tab-pane key="url" tab="URL 上传" force-render>
-        <UrlPictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
+        <UrlPictureUpload
+          :picture="picture"
+          :spaceId="spaceId"
+          :publishToPublic="Boolean(pictureForm.publishToPublic)"
+          :onSuccess="onSuccess"
+        />
       </a-tab-pane>
     </a-tabs>
 
@@ -112,10 +141,13 @@ const router = useRouter()
 const route = useRoute()
 
 const picture = ref<API.PictureVO>()
-const pictureForm = reactive<API.PictureEditRequest>({})
+const pictureForm = reactive<API.PictureEditRequest>({
+  publishToPublic: route.query.syncPublic === '1',
+})
 const uploadType = ref<'file' | 'url'>('file')
 const isEditMode = computed(() => Boolean(route.query?.id))
 const spaceId = computed(() => route.query?.spaceId as string | undefined)
+const fromPath = computed(() => route.query?.from as string | undefined)
 
 const canEditCurrentPicture = computed(() => {
   if (!isEditMode.value) {
@@ -127,6 +159,12 @@ const canEditCurrentPicture = computed(() => {
 const onSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
   pictureForm.name = newPicture.name
+  pictureForm.publishToPublic = Boolean(newPicture.publishToPublic)
+  if (Boolean(newPicture.publishToPublic) && newPicture.reviewStatus === 0) {
+    message.success('图片已提交审核，审核通过后会显示在公共图库')
+    return
+  }
+  message.success('图片上传成功')
 }
 
 const handleSubmit = async (values: API.PictureEditRequest) => {
@@ -136,13 +174,17 @@ const handleSubmit = async (values: API.PictureEditRequest) => {
   }
   const res = await editPictureUsingPost({
     id: pictureId,
-    spaceId: spaceId.value,
     ...values,
   })
   if (res.data.code === 200 && res.data.data) {
-    message.success(isEditMode.value ? '修改成功' : '上传成功')
+    if (values.publishToPublic) {
+      message.success('图片已保存，公共图库展示状态将按审核结果更新')
+    } else {
+      message.success(isEditMode.value ? '修改成功' : '上传成功')
+    }
     await router.push({
       path: `/picture/${pictureId}`,
+      query: fromPath.value ? { from: fromPath.value } : undefined,
     })
   } else {
     message.error((isEditMode.value ? '修改失败：' : '创建失败：') + res.data.message)
@@ -187,6 +229,7 @@ const getOldPicture = async () => {
     pictureForm.introduction = data.introduction
     pictureForm.category = data.category
     pictureForm.tags = data.tags
+    pictureForm.publishToPublic = Boolean(data.publishToPublic)
   } else {
     message.error('获取图片信息失败：' + res.data.message)
   }
@@ -204,6 +247,7 @@ const doEditPicture = async () => {
 
 const onCropSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
+  pictureForm.publishToPublic = Boolean(newPicture.publishToPublic)
 }
 
 const imageOutPaintingRef = ref()
@@ -214,6 +258,7 @@ const doImagePainting = async () => {
 
 const onImageOutPaintingSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
+  pictureForm.publishToPublic = Boolean(newPicture.publishToPublic)
 }
 
 const space = ref<API.SpaceVO>()

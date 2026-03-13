@@ -77,11 +77,6 @@ const originItems = [
     title: '首页',
   },
   {
-    key: '/add_picture',
-    label: '上传图片',
-    title: '上传图片',
-  },
-  {
     key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',

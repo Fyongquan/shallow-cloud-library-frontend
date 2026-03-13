@@ -1,4 +1,4 @@
-import {createRouter, createWebHistory} from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserProfileCenterPage from '@/pages/user/UserProfileCenterPage.vue'
@@ -39,6 +39,9 @@ const router = createRouter({
       path: '/user/profile',
       name: '个人中心',
       component: UserProfileCenterPage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/admin/userManage',
@@ -60,16 +63,25 @@ const router = createRouter({
       name: '空间成员管理',
       component: SpaceUserManagePage,
       props: true,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/add_picture',
       name: '上传图片',
       component: AddPicturePage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/add_picture/batch',
       name: '批量创建图片',
       component: AddPictureBatchPage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/picture/:id',
@@ -81,22 +93,34 @@ const router = createRouter({
       path: '/add_space',
       name: '创建空间',
       component: AddSpacePage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/my_space',
       name: '我的空间',
       component: MySpacePage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/space/:id',
       name: '空间详情',
       component: SpaceDetailPage,
       props: true,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/space_analyze',
       name: '空间分析',
       component: SpaceAnalyzePage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/search_picture',
@@ -107,13 +131,13 @@ const router = createRouter({
       path: '/user_exchange_vip',
       name: '用户兑换会员',
       component: UserExchangeVipPage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/about',
       name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
     },
   ],

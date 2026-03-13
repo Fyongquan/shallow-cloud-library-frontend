@@ -1,26 +1,40 @@
-﻿import router from '@/router'
+import router from '@/router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { message } from 'ant-design-vue'
 
 let firstFetchLoginUser = true
 
-router.beforeEach(async (to, from, next) => {
+const ensureLoginUser = async (force = false) => {
   const loginUserStore = useLoginUserStore()
-  let loginUser = loginUserStore.loginUser
+  if (!force && !firstFetchLoginUser) {
+    return loginUserStore.loginUser
+  }
 
-  if (firstFetchLoginUser) {
-    try {
-      await loginUserStore.fetchLoginUser()
-    } catch (error: any) {
-      if (error?.response?.status !== 401) {
-        throw error
-      }
-      loginUserStore.setLoginUser({
-        userName: '未登录',
-      })
+  try {
+    await loginUserStore.fetchLoginUser()
+  } catch (error: any) {
+    if (error?.response?.status !== 401) {
+      throw error
     }
-    loginUser = loginUserStore.loginUser
-    firstFetchLoginUser = false
+    loginUserStore.setLoginUser({
+      userName: '未登录',
+    })
+  }
+
+  firstFetchLoginUser = false
+  return loginUserStore.loginUser
+}
+
+router.beforeEach(async (to, from, next) => {
+  let loginUser = await ensureLoginUser()
+
+  if (to.meta?.requireLogin && !loginUser?.id) {
+    loginUser = await ensureLoginUser(true)
+    if (!loginUser?.id) {
+      message.warning('请先登录')
+      next(`/user/login?redirect=${to.fullPath}`)
+      return
+    }
   }
 
   const toUrl = to.fullPath
@@ -31,5 +45,6 @@ router.beforeEach(async (to, from, next) => {
       return
     }
   }
+
   next()
 })

@@ -18,6 +18,15 @@
             <a-card-meta :title="picture.name">
               <template #description>
                 <a-flex>
+                  <a-tag v-if="picture.publishToPublic && picture.reviewStatus === 1" color="blue">
+                    公共图库中
+                  </a-tag>
+                  <a-tag v-else-if="picture.publishToPublic && picture.reviewStatus === 0" color="orange">
+                    公开审核中
+                  </a-tag>
+                  <a-tag v-else-if="picture.publishToPublic && picture.reviewStatus === 2" color="red">
+                    公开审核未通过
+                  </a-tag>
                   <a-tag color="green">
                     {{ picture.category ?? '默认' }}
                   </a-tag>
@@ -43,7 +52,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -72,10 +81,14 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const router = useRouter()
+const route = useRoute()
 
 const doClickPicture = (picture: API.PictureVO) => {
   router.push({
     path: `/picture/${picture.id}`,
+    query: {
+      from: route.fullPath,
+    },
   })
 }
 
@@ -96,6 +109,7 @@ const doEdit = (picture, e) => {
     query: {
       id: picture.id,
       spaceId: picture.spaceId,
+      from: route.fullPath,
     },
   })
 }

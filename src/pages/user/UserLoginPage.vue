@@ -45,17 +45,22 @@ const loginUserStore = useLoginUserStore()
  * @param values
  */
 const handleSubmit = async (values: any) => {
-  const res = await userLoginUsingPost(values)
-  // 登录成功，把登录态保存到全局状态中
-  if (res.data.code === 200 && res.data.data) {
-    await loginUserStore.fetchLoginUser()
-    message.success('登录成功')
-    router.push({
-      path: '/',
-      replace: true,
-    })
-  } else {
-    message.error('登录失败，' + res.data.message)
+  try {
+    const res = await userLoginUsingPost(values)
+    // 登录成功，把登录态保存到全局状态中
+    if (res.data.code === 200 && res.data.data) {
+      await loginUserStore.fetchLoginUser()
+      message.success('登录成功')
+      router.push({
+        path: '/',
+        replace: true,
+      })
+      return
+    }
+    message.error('登录失败，' + (res.data.message || '请检查账号或密码'))
+  } catch (error: any) {
+    const errorMessage = error?.response?.data?.message || error?.message || '请检查账号或密码'
+    message.error('登录失败，' + errorMessage)
   }
 }
 </script>

@@ -383,6 +383,7 @@ declare namespace API {
     reviewStatus?: number
     reviewTime?: string
     reviewerId?: number
+    publishToPublic?: number
     spaceId?: number
     tags?: string
     thumbnailUrl?: string
@@ -404,6 +405,7 @@ declare namespace API {
     id?: number
     introduction?: string
     name?: string
+    publishToPublic?: boolean
     tags?: string[]
   }
 
@@ -421,6 +423,8 @@ declare namespace API {
     picScale?: number
     picSize?: number
     picWidth?: number
+    publicVisibleOnly?: boolean
+    publishToPublic?: boolean
     reviewMessage?: string
     reviewStatus?: number
     reviewTime?: string
@@ -475,6 +479,7 @@ declare namespace API {
     fileUrl?: string
     id?: string | number
     picName?: string
+    publishToPublic?: boolean
     spaceId?: string | number
   }
 
@@ -493,6 +498,9 @@ declare namespace API {
     picScale?: number
     picSize?: number
     picWidth?: number
+    publicVisible?: boolean
+    publishToPublic?: boolean
+    reviewStatus?: number
     spaceId?: string | number
     tags?: string[]
     thumbnailUrl?: string
@@ -728,6 +736,7 @@ declare namespace API {
     fileUrl?: string
     id?: number
     picName?: string
+    publishToPublic?: boolean
     spaceId?: number
   }
 
