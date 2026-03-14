@@ -167,18 +167,27 @@ const onSuccess = (newPicture: API.PictureVO) => {
   message.success('图片上传成功')
 }
 
-const handleSubmit = async (values: API.PictureEditRequest) => {
+const handleSubmit = async () => {
   const pictureId = picture.value?.id
   if (!pictureId) {
     return
   }
-  const res = await editPictureUsingPost({
+  const editPayload: API.PictureEditRequest = {
     id: pictureId,
-    ...values,
+    name: pictureForm.name,
+    introduction: pictureForm.introduction,
+    category: pictureForm.category,
+    tags: pictureForm.tags,
+    publishToPublic: Boolean(pictureForm.publishToPublic),
+  }
+  const res = await editPictureUsingPost({
+    ...editPayload,
   })
   if (res.data.code === 200 && res.data.data) {
-    if (values.publishToPublic) {
-      message.success('图片已保存，公共图库展示状态将按审核结果更新')
+    if (spaceId.value && editPayload.publishToPublic) {
+      message.success('图片已保存，已提交公共图库审核')
+    } else if (spaceId.value) {
+      message.success('图片已保存，已取消同步到公共图库')
     } else {
       message.success(isEditMode.value ? '修改成功' : '上传成功')
     }

@@ -64,7 +64,7 @@
       style="margin-bottom: 16px"
       @change="onTogglePublicVisible"
     >
-      仅查看已显示在公共图库中的图片
+      仅查看已勾选同步到公共图库的图片
     </a-checkbox>
 
     <PictureList
@@ -193,7 +193,8 @@ const onColorChange = async (color: string) => {
   try {
     const res = await searchPictureByColorUsingPost({
       picColor: color,
-      spaceId: Number(props.id),
+      // Keep Snowflake id precision: do not cast to Number in browser.
+      spaceId: id.value as any,
     })
     if (res.data.code === 200 && res.data.data) {
       dataList.value = res.data.data ?? []
