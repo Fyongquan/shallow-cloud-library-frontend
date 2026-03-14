@@ -1,12 +1,9 @@
 ﻿import axios from "axios";
 import {message} from "ant-design-vue";
 
-// 区分开发和生产环境
-const DEV_BASE_URL = "http://localhost:8123";
-// const PROD_BASE_URL = "http://81.69.229.63";
-// 创建 Axios 实例
+// 接口文件本身已经带 /api 前缀，这里保持空前缀避免出现 /api/api
 const myAxios = axios.create({
-    baseURL: DEV_BASE_URL,
+    baseURL: "",
     timeout: 10000,
     withCredentials: true,
 });
@@ -14,11 +11,9 @@ const myAxios = axios.create({
 // 全局请求拦截器
 myAxios.interceptors.request.use(
   function (config) {
-    // Do something before request is sent
     return config
   },
   function (error) {
-    // Do something with request error
     return Promise.reject(error)
   },
 )
@@ -41,8 +36,6 @@ myAxios.interceptors.response.use(
     return response
   },
   function (error) {
-    // Any status codes that falls outside the range of 2xx cause this function to trigger
-    // Do something with response error
     return Promise.reject(error)
   },
 )
