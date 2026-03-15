@@ -1,6 +1,5 @@
-<template>
+﻿<template>
   <div id="userManagePage">
-    <!-- 搜索表单 -->
     <a-form layout="inline" :model="searchParams" @finish="doSearch">
       <a-form-item label="账号">
         <a-input v-model:value="searchParams.userAccount" placeholder="输入账号" allow-clear />
@@ -12,9 +11,11 @@
         <a-button type="primary" html-type="submit">搜索</a-button>
       </a-form-item>
     </a-form>
+
     <div style="margin-bottom: 16px" />
-    <!-- 表格 -->
+
     <a-table
+      row-key="id"
       :columns="columns"
       :data-source="dataList"
       :pagination="pagination"
@@ -24,17 +25,16 @@
         <template v-if="column.dataIndex === 'userAvatar'">
           <a-image :src="record.userAvatar" :width="120" />
         </template>
+
         <template v-else-if="column.dataIndex === 'userRole'">
-          <div v-if="record.userRole === 'admin'">
-            <a-tag color="green">管理员</a-tag>
-          </div>
-          <div v-else>
-            <a-tag color="blue">普通用户</a-tag>
-          </div>
+          <a-tag v-if="record.userRole === 'admin'" color="green">管理员</a-tag>
+          <a-tag v-else color="blue">普通用户</a-tag>
         </template>
-        <template v-if="column.dataIndex === 'createTime'">
+
+        <template v-else-if="column.dataIndex === 'createTime'">
           {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
         </template>
+
         <template v-else-if="column.key === 'action'">
           <a-button danger @click="doDelete(record.id)">删除</a-button>
         </template>
@@ -42,15 +42,17 @@
     </a-table>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { deleteUserUsingPost, listUserVoByPageUsingPost } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { toIdString } from '@/utils/id'
 
 const columns = [
   {
-    title: 'id',
+    title: 'ID',
     dataIndex: 'id',
   },
   {
@@ -83,11 +85,9 @@ const columns = [
   },
 ]
 
-// 定义数据
 const dataList = ref<API.UserVO[]>([])
 const total = ref(0)
 
-// 搜索条件
 const searchParams = reactive<API.UserQueryRequest>({
   current: 1,
   pageSize: 10,
@@ -95,7 +95,6 @@ const searchParams = reactive<API.UserQueryRequest>({
   sortOrder: 'ascend',
 })
 
-// 获取数据
 const fetchData = async () => {
   const res = await listUserVoByPageUsingPost({
     ...searchParams,
@@ -104,49 +103,43 @@ const fetchData = async () => {
     dataList.value = res.data.data.records ?? []
     total.value = res.data.data.total ?? 0
   } else {
-    message.error('获取数据失败，' + res.data.message)
+    message.error(`获取数据失败：${res.data.message}`)
   }
 }
 
-// 页面加载时获取数据，请求一次
 onMounted(() => {
   fetchData()
 })
 
-// 分页参数
 const pagination = computed(() => {
   return {
     current: searchParams.current,
     pageSize: searchParams.pageSize,
     total: total.value,
     showSizeChanger: true,
-    showTotal: (total) => `共 ${total} 条`,
+    showTotal: (v: number) => `共 ${v} 条`,
   }
 })
 
-// 表格变化之后，重新获取数据
 const doTableChange = (page: any) => {
   searchParams.current = page.current
   searchParams.pageSize = page.pageSize
   fetchData()
 }
 
-// 搜索数据
 const doSearch = () => {
-  // 重置页码
   searchParams.current = 1
   fetchData()
 }
 
-// 删除数据
-const doDelete = async (id: string) => {
-  if (!id) {
+const doDelete = async (id?: string | number) => {
+  const userId = toIdString(id)
+  if (!userId) {
     return
   }
-  const res = await deleteUserUsingPost({ id })
+  const res = await deleteUserUsingPost({ id: userId as any })
   if (res.data.code === 200) {
     message.success('删除成功')
-    // 刷新数据
     fetchData()
   } else {
     message.error('删除失败')

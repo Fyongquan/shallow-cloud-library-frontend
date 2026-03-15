@@ -35,6 +35,7 @@ import {
   getPictureOutPaintingTaskUsingGet,
   uploadPictureByUrlUsingPost,
 } from '@/api/pictureController.ts'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   picture?: API.PictureVO
@@ -52,13 +53,14 @@ const uploadLoading = ref(false)
 let pollingTimer: ReturnType<typeof setInterval> | null = null
 
 const createTask = async () => {
-  if (!props.picture?.id) {
+  const pictureId = toIdString(props.picture?.id)
+  if (!pictureId) {
     message.warning('请先选择要扩图的图片')
     return
   }
   try {
     const res = await createPictureOutPaintingTaskUsingPost({
-      pictureId: props.picture.id,
+      pictureId: pictureId as any,
       parameters: {
         xScale: 2,
         yScale: 2,
@@ -125,12 +127,16 @@ const handleUpload = async () => {
   }
   uploadLoading.value = true
   try {
+    const spaceId = toIdString(props.spaceId)
+    const pictureId = toIdString(props.picture?.id)
     const params: API.PictureUploadRequest = {
       fileUrl: resultImageUrl.value,
-      spaceId: props.spaceId,
     }
-    if (props.picture?.id) {
-      params.id = props.picture.id
+    if (spaceId) {
+      params.spaceId = spaceId as any
+    }
+    if (pictureId) {
+      params.id = pictureId as any
     }
     const res = await uploadPictureByUrlUsingPost(params)
     if (res.data.code === 200 && res.data.data) {

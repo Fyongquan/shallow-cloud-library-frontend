@@ -49,6 +49,7 @@ import {
   getText2ImageTaskUsingGet,
   uploadPictureByUrlUsingPost,
 } from '@/api/pictureController.ts'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   spaceId?: string | number
@@ -171,10 +172,11 @@ const handleUpload = async () => {
   }
   uploadLoading.value = true
   try {
+    const spaceId = toIdString(props.spaceId)
     const res = await uploadPictureByUrlUsingPost({
       fileUrl: resultImageUrl.value,
       picName: prompt.value.trim().slice(0, 20) || 'AI生成图片',
-      spaceId: props.spaceId,
+      spaceId: spaceId as any,
     })
     if (res.data.code === 200 && res.data.data) {
       message.success('生成图片保存成功')

@@ -11,6 +11,7 @@ import { message } from 'ant-design-vue'
 import { listSpaceVoByPageUsingPost } from '@/api/spaceController.ts'
 import { SPACE_TYPE_ENUM } from '@/constants/space.ts'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
+import { toIdString } from '@/utils/id'
 
 const router = useRouter()
 const route = useRoute()
@@ -36,25 +37,26 @@ const checkUserSpace = async () => {
   }
 
   const space = res.data.data?.records?.[0]
-  if (!space?.id) {
+  const spaceId = toIdString(space?.id)
+  if (!spaceId) {
     message.warn('请先创建空间')
     await router.replace('/add_space')
     return
   }
 
   if (route.query.uploadToPublic === '1') {
-    await router.replace({
-      path: '/add_picture',
-      query: {
-        spaceId: String(space.id),
-        syncPublic: '1',
-        from: `/space/${space.id}`,
-      },
-    })
+      await router.replace({
+        path: '/add_picture',
+        query: {
+          spaceId,
+          syncPublic: '1',
+          from: `/space/${spaceId}`,
+        },
+      })
     return
   }
 
-  await router.replace(`/space/${space.id}`)
+  await router.replace(`/space/${spaceId}`)
 }
 
 onMounted(() => {

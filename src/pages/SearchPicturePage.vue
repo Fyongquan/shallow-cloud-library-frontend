@@ -46,19 +46,24 @@ import {
 } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
+import { toIdString } from '@/utils/id'
 
 const route = useRoute()
 
 const pictureId = computed(() => {
-  return route.query?.pictureId
+  return toIdString(route.query?.pictureId)
 })
 const picture = ref<API.PictureVO>({})
 
 // 获取图片详情
 const fetchPictureDetail = async () => {
   try {
+    if (!pictureId.value) {
+      message.error('图片 id 无效')
+      return
+    }
     const res = await getPictureVoByIdUsingGet({
-      id: pictureId.value,
+      id: pictureId.value as any,
     })
     if (res.data.code === 200 && res.data.data) {
       picture.value = res.data.data
@@ -81,8 +86,12 @@ const loading = ref<boolean>(true)
 const fetchResultData = async () => {
   loading.value = true
   try {
+    if (!pictureId.value) {
+      message.error('图片 id 无效')
+      return
+    }
     const res = await searchPictureByPictureUsingPost({
-      pictureId: pictureId.value,
+      pictureId: pictureId.value as any,
     })
     if (res.data.code === 200 && res.data.data) {
       dataList.value = res.data.data ?? []

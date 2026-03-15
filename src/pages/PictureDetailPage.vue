@@ -86,6 +86,90 @@
         </a-card>
       </a-col>
     </a-row>
+    <a-card title="互动" style="margin-top: 16px">
+      <a-space wrap>
+        <a-button :loading="thumbLoading" @click="toggleThumb">
+          <template #icon>
+            <LikeFilled v-if="interactStatus.thumbed" />
+            <LikeOutlined v-else />
+          </template>
+          点赞 {{ interactStatus.thumbCount ?? 0 }}
+        </a-button>
+        <a-button :loading="favorLoading" @click="toggleFavor">
+          <template #icon>
+            <StarFilled v-if="interactStatus.favored" />
+            <StarOutlined v-else />
+          </template>
+          收藏 {{ interactStatus.favorCount ?? 0 }}
+        </a-button>
+        <a-tag color="blue">
+          <template #icon>
+            <MessageOutlined />
+          </template>
+          评论 {{ interactStatus.commentCount ?? 0 }}
+        </a-tag>
+      </a-space>
+      <a-divider />
+      <a-space direction="vertical" style="width: 100%">
+        <a-textarea
+          v-model:value="commentContent"
+          :maxlength="500"
+          :auto-size="{ minRows: 2, maxRows: 4 }"
+          placeholder="写点评论吧（最多 500 字）"
+        />
+        <div class="comment-action-row">
+          <a-button type="primary" :loading="commentSubmitting" @click="submitComment">
+            发表评论
+          </a-button>
+        </div>
+      </a-space>
+      <a-divider />
+      <a-list
+        :data-source="commentList"
+        :loading="commentLoading"
+        item-layout="horizontal"
+        :locale="{ emptyText: '还没有评论，来写第一条吧' }"
+      >
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <template #actions>
+              <a-button
+                v-if="canDeleteComment(item)"
+                type="link"
+                danger
+                size="small"
+                @click="deleteComment(item.id)"
+              >
+                删除
+              </a-button>
+            </template>
+            <a-list-item-meta>
+              <template #avatar>
+                <a-avatar :src="item.user?.userAvatar" />
+              </template>
+              <template #title>
+                <a-space size="small">
+                  <span>{{ item.user?.userName ?? `用户 ${item.userId}` }}</span>
+                  <span class="comment-time">{{ formatCommentTime(item.createTime) }}</span>
+                </a-space>
+              </template>
+              <template #description>
+                <div class="comment-content">{{ item.content }}</div>
+              </template>
+            </a-list-item-meta>
+          </a-list-item>
+        </template>
+      </a-list>
+      <div class="comment-pagination">
+        <a-pagination
+          :current="commentCurrent"
+          :page-size="commentPageSize"
+          :total="commentTotal"
+          :show-size-changer="false"
+          @change="onCommentPageChange"
+        />
+      </div>
+    </a-card>
     <ShareModal ref="shareModalRef" :link="shareLink" :expire-time="shareExpireTime" />
   </div>
 </template>
@@ -98,16 +182,36 @@ import {
   deletePictureUsingPost,
   getPictureVoByIdUsingGet,
 } from '@/api/pictureController.ts'
+import {
+  addPictureCommentUsingPost,
+  deletePictureCommentUsingPost,
+  doPictureFavorUsingPost,
+  doThumbUsingPost,
+  getPictureInteractStatusUsingGet,
+  listPictureCommentVoByPageUsingPost,
+  type PictureCommentVO,
+  type PictureInteractStatus,
+  undoPictureFavorUsingPost,
+  undoThumbUsingPost,
+} from '@/api/pictureInteractController.ts'
 import { message } from 'ant-design-vue'
 import {
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
+  LikeFilled,
+  LikeOutlined,
+  MessageOutlined,
   ShareAltOutlined,
+  StarFilled,
+  StarOutlined,
 } from '@ant-design/icons-vue'
 import { downloadImage, formatSize, toHexColor } from '@/utils'
 import ShareModal from '@/components/ShareModal.vue'
 import { SPACE_PERMISSION_ENUM } from '@/constants/space.ts'
+import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
+import { storeToRefs } from 'pinia'
+import { isSameId, toIdString } from '@/utils/id'
 
 interface Props {
   id: string | number
@@ -129,8 +233,13 @@ const canDelete = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_DELETE)
 
 const fetchPictureDetail = async () => {
   try {
+    const pictureId = toIdString(props.id)
+    if (!pictureId) {
+      message.error('图片 id 无效')
+      return
+    }
     const res = await getPictureVoByIdUsingGet({
-      id: props.id,
+      id: pictureId as any,
       shareCode: route.query.shareCode as string | undefined,
     })
     if (res.data.code === 200 && res.data.data) {
@@ -143,27 +252,28 @@ const fetchPictureDetail = async () => {
   }
 }
 
-onMounted(() => {
-  fetchPictureDetail()
-})
-
 const doEdit = () => {
+  const pictureId = toIdString(picture.value.id)
+  if (!pictureId) {
+    message.error('图片 id 无效')
+    return
+  }
   router.push({
     path: '/add_picture',
     query: {
-      id: picture.value.id,
-      spaceId: picture.value.spaceId,
+      id: pictureId,
+      spaceId: toIdString(picture.value.spaceId),
       from: (route.query.from as string | undefined) ?? undefined,
     },
   })
 }
 
 const doDelete = async () => {
-  const id = picture.value.id
+  const id = toIdString(picture.value.id)
   if (!id) {
     return
   }
-  const res = await deletePictureUsingPost({ id })
+  const res = await deletePictureUsingPost({ id: id as any })
   if (res.data.code === 200) {
     message.success('删除成功')
     const from = route.query.from as string | undefined
@@ -186,7 +296,7 @@ const doDownload = () => {
 }
 
 const shareModalRef = ref()
-const shareLink = ref<string>()
+const shareLink = ref('')
 const shareExpireTime = ref<string>()
 
 const formatExpireTime = (expireTime?: string) => {
@@ -213,6 +323,171 @@ const doShare = async () => {
     shareModalRef.value.openModal()
   }
 }
+
+const loginUserStore = useLoginUserStore()
+const { loginUser } = storeToRefs(loginUserStore)
+
+const interactStatus = ref<PictureInteractStatus>({
+  thumbCount: 0,
+  thumbed: false,
+  favorCount: 0,
+  favored: false,
+  commentCount: 0,
+})
+const thumbLoading = ref(false)
+const favorLoading = ref(false)
+const commentLoading = ref(false)
+const commentSubmitting = ref(false)
+const commentContent = ref('')
+const commentList = ref<PictureCommentVO[]>([])
+const commentCurrent = ref(1)
+const commentPageSize = ref(10)
+const commentTotal = ref(0)
+
+const fetchInteractStatus = async () => {
+  if (!picture.value.id) {
+    return
+  }
+  const res = await getPictureInteractStatusUsingGet({
+    pictureId: picture.value.id,
+  })
+  if (res.data.code === 200 && res.data.data) {
+    interactStatus.value = {
+      thumbCount: res.data.data.thumbCount ?? 0,
+      thumbed: Boolean(res.data.data.thumbed),
+      favorCount: res.data.data.favorCount ?? 0,
+      favored: Boolean(res.data.data.favored),
+      commentCount: res.data.data.commentCount ?? 0,
+    }
+  }
+}
+
+const fetchCommentList = async (current = 1) => {
+  if (!picture.value.id) {
+    return
+  }
+  commentLoading.value = true
+  try {
+    const res = await listPictureCommentVoByPageUsingPost({
+      pictureId: picture.value.id,
+      current,
+      pageSize: commentPageSize.value,
+    })
+    if (res.data.code === 200 && res.data.data) {
+      commentList.value = res.data.data.records ?? []
+      commentTotal.value = res.data.data.total ?? 0
+      commentCurrent.value = current
+      interactStatus.value.commentCount = commentTotal.value
+      return
+    }
+    message.error(res.data.message ?? '获取评论失败')
+  } finally {
+    commentLoading.value = false
+  }
+}
+
+const toggleThumb = async () => {
+  if (!picture.value.id) {
+    return
+  }
+  thumbLoading.value = true
+  try {
+    if (interactStatus.value.thumbed) {
+      await undoThumbUsingPost({ pictureId: picture.value.id })
+    } else {
+      await doThumbUsingPost({ pictureId: picture.value.id })
+    }
+    await fetchInteractStatus()
+  } finally {
+    thumbLoading.value = false
+  }
+}
+
+const toggleFavor = async () => {
+  if (!picture.value.id) {
+    return
+  }
+  favorLoading.value = true
+  try {
+    if (interactStatus.value.favored) {
+      await undoPictureFavorUsingPost({ pictureId: picture.value.id })
+    } else {
+      await doPictureFavorUsingPost({ pictureId: picture.value.id })
+    }
+    await fetchInteractStatus()
+  } finally {
+    favorLoading.value = false
+  }
+}
+
+const submitComment = async () => {
+  if (!picture.value.id) {
+    return
+  }
+  if (!commentContent.value.trim()) {
+    message.warning('请输入评论内容')
+    return
+  }
+  commentSubmitting.value = true
+  try {
+    const res = await addPictureCommentUsingPost({
+      pictureId: picture.value.id,
+      content: commentContent.value.trim(),
+    })
+    if (res.data.code !== 200) {
+      message.error(res.data.message ?? '发表评论失败')
+      return
+    }
+    commentContent.value = ''
+    message.success('评论成功')
+    await fetchInteractStatus()
+    await fetchCommentList(1)
+  } finally {
+    commentSubmitting.value = false
+  }
+}
+
+const canDeleteComment = (comment: PictureCommentVO) => {
+  if (!loginUser.value?.id || !comment.userId) {
+    return false
+  }
+  if (loginUser.value.userRole === 'admin') {
+    return true
+  }
+  return isSameId(loginUser.value.id, comment.userId)
+}
+
+const deleteComment = async (commentId?: number | string) => {
+  if (!commentId) {
+    return
+  }
+  const res = await deletePictureCommentUsingPost({ id: commentId })
+  if (res.data.code !== 200) {
+    message.error(res.data.message ?? '删除评论失败')
+    return
+  }
+  message.success('删除评论成功')
+  const maxPage = Math.max(1, Math.ceil((commentTotal.value - 1) / commentPageSize.value))
+  await fetchInteractStatus()
+  await fetchCommentList(Math.min(commentCurrent.value, maxPage))
+}
+
+const onCommentPageChange = (page: number) => {
+  fetchCommentList(page)
+}
+
+const formatCommentTime = (value?: string) => {
+  if (!value) {
+    return ''
+  }
+  return new Date(value).toLocaleString()
+}
+
+onMounted(async () => {
+  await fetchPictureDetail()
+  await fetchInteractStatus()
+  await fetchCommentList(1)
+})
 </script>
 
 <style scoped>
@@ -247,5 +522,26 @@ const doShare = async () => {
 .color-block-main {
   width: 18px;
   height: 18px;
+}
+
+.comment-action-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.comment-time {
+  color: #999;
+  font-size: 12px;
+}
+
+.comment-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 </style>

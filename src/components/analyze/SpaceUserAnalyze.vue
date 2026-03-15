@@ -18,11 +18,12 @@ import 'echarts'
 import { computed, ref, watchEffect } from 'vue'
 import { getSpaceUserAnalyzeUsingPost } from '@/api/spaceAnalyzeController.ts'
 import { message } from 'ant-design-vue'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   queryAll?: boolean
   queryPublic?: boolean
-  spaceId?: number
+  spaceId?: string | number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,7 +66,7 @@ const fetchData = async () => {
   const res = await getSpaceUserAnalyzeUsingPost({
     queryAll: props.queryAll,
     queryPublic: props.queryPublic,
-    spaceId: props.spaceId,
+    spaceId: toIdString(props.spaceId) as any,
     timeDimension: timeDimension.value,
     userId: userId.value,
   })

@@ -42,10 +42,11 @@ import {
   listPictureTagCategoryUsingGet,
 } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   pictureList: API.PictureVO[]
-  spaceId: number
+  spaceId: number | string
   onSuccess: () => void
 }
 
@@ -83,9 +84,17 @@ const handleSubmit = async (values: any) => {
   if (!props.pictureList) {
     return
   }
+  const pictureIdList = props.pictureList
+    .map((picture) => toIdString(picture.id))
+    .filter((id): id is string => Boolean(id))
+  const spaceId = toIdString(props.spaceId)
+  if (!spaceId) {
+    message.error('空间 id 无效')
+    return
+  }
   const res = await editPictureByBatchUsingPost({
-    pictureIdList: props.pictureList.map((picture) => picture.id),
-    spaceId: props.spaceId,
+    pictureIdList: pictureIdList as any,
+    spaceId: spaceId as any,
     ...values,
   })
   // 操作成功

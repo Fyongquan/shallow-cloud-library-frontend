@@ -22,6 +22,7 @@ import { LoadingOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import type { UploadProps } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 import { uploadPictureUsingPost } from '@/api/pictureController'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   picture?: API.PictureVO
@@ -36,8 +37,15 @@ const loading = ref(false)
 const handleUpload = async ({ file }: any) => {
   loading.value = true
   try {
-    const params: API.PictureUploadRequest = props.picture ? { id: props.picture.id } : {}
-    params.spaceId = props.spaceId
+    const params: API.PictureUploadRequest = {}
+    const pictureId = toIdString(props.picture?.id)
+    const spaceId = toIdString(props.spaceId)
+    if (pictureId) {
+      params.id = pictureId as any
+    }
+    if (spaceId) {
+      params.spaceId = spaceId as any
+    }
     params.publishToPublic = props.publishToPublic
     const res = await uploadPictureUsingPost(params, {}, file)
     if (res.data.code === 200 && res.data.data) {

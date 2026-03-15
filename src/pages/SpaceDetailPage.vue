@@ -109,6 +109,7 @@ import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
 import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { formatSize } from '@/utils'
 import { SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '@/constants/space'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   id: string | number
@@ -116,7 +117,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
-const id = computed(() => String(props.id))
+const id = computed(() => toIdString(props.id) ?? '')
 const space = ref<API.SpaceVO>({})
 const dataList = ref<API.PictureVO[]>([])
 const total = ref(0)
@@ -143,7 +144,11 @@ const showSpaceUserManage = computed(() => canManageSpaceUser.value && space.val
 
 const fetchSpaceDetail = async () => {
   try {
-    const res = await getSpaceVoByIdUsingGet({ id: props.id })
+    if (!id.value) {
+      message.error('空间 id 无效')
+      return
+    }
+    const res = await getSpaceVoByIdUsingGet({ id: id.value as any })
     if (res.data.code === 200 && res.data.data) {
       space.value = res.data.data
     } else {
@@ -157,8 +162,12 @@ const fetchSpaceDetail = async () => {
 const fetchData = async () => {
   loading.value = true
   try {
+    if (!id.value) {
+      message.error('空间 id 无效')
+      return
+    }
     const res = await listPictureVoByPageUsingPost({
-      spaceId: props.id,
+      spaceId: id.value as any,
       ...searchParams.value,
     })
     if (res.data.code === 200 && res.data.data) {

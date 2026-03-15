@@ -76,6 +76,7 @@ import {
   editSpaceUserUsingPost,
   listSpaceUserUsingPost,
 } from '@/api/spaceUserController'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   id: string
@@ -108,12 +109,12 @@ const formData = reactive<API.SpaceUserAddRequest>({
 })
 
 const fetchData = async () => {
-  const spaceId = props.id
+  const spaceId = toIdString(props.id)
   if (!spaceId) {
     return
   }
   const res = await listSpaceUserUsingPost({
-    spaceId,
+    spaceId: spaceId as any,
   })
   if (res.data.code === 200 && res.data.data) {
     dataList.value = res.data.data ?? []
@@ -127,13 +128,15 @@ onMounted(() => {
 })
 
 const handleSubmit = async () => {
-  const spaceId = props.id
-  if (!spaceId) {
+  const spaceId = toIdString(props.id)
+  const userId = toIdString(formData.userId)
+  if (!spaceId || !userId) {
+    message.warning('请输入有效的用户 ID')
     return
   }
   const res = await addSpaceUserUsingPost({
-    spaceId,
-    ...formData,
+    spaceId: spaceId as any,
+    userId: userId as any,
   })
   if (res.data.code === 200) {
     message.success('成员添加成功')
@@ -145,8 +148,13 @@ const handleSubmit = async () => {
 }
 
 const editSpaceRole = async (value: string, record: API.SpaceUserVO) => {
+  const id = toIdString(record.id)
+  if (!id) {
+    message.error('成员记录 id 无效')
+    return
+  }
   const res = await editSpaceUserUsingPost({
-    id: record.id,
+    id: id as any,
     spaceRole: value,
   })
   if (res.data.code === 200) {
@@ -157,10 +165,11 @@ const editSpaceRole = async (value: string, record: API.SpaceUserVO) => {
 }
 
 const doDelete = async (id?: string) => {
-  if (!id) {
+  const memberId = toIdString(id)
+  if (!memberId) {
     return
   }
-  const res = await deleteSpaceUserUsingPost({ id })
+  const res = await deleteSpaceUserUsingPost({ id: memberId as any })
   if (res.data.code === 200) {
     message.success('成员移除成功')
     await fetchData()

@@ -31,7 +31,7 @@
         </a-checkable-tag>
       </a-space>
     </div>
-    <PictureList :dataList="dataList" :loading="loading" />
+    <PictureList :dataList="dataList" :loading="loading" showPublicThumbCount />
     <a-pagination
       style="text-align: right"
       v-model:current="searchParams.current"
@@ -52,10 +52,15 @@ import {
   listPictureTagCategoryUsingGet,
   listPictureVoByPageUsingPost,
 } from '@/api/pictureController.ts'
+import { getPictureInteractStatusUsingGet } from '@/api/pictureInteractController.ts'
+
+type PublicPictureVO = API.PictureVO & {
+  thumbCount?: number
+}
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
-const dataList = ref<API.PictureVO[]>([])
+const dataList = ref<PublicPictureVO[]>([])
 const total = ref(0)
 const loading = ref(true)
 
@@ -87,12 +92,36 @@ const fetchData = async () => {
   })
   const res = await listPictureVoByPageUsingPost(params)
   if (res.data.code === 200 && res.data.data) {
-    dataList.value = res.data.data.records ?? []
+    const records = (res.data.data.records ?? []) as PublicPictureVO[]
+    await fillThumbCount(records)
+    dataList.value = records
     total.value = res.data.data.total ?? 0
   } else {
     message.error('获取数据失败：' + res.data.message)
   }
   loading.value = false
+}
+
+const fillThumbCount = async (records: PublicPictureVO[]) => {
+  if (!records.length) {
+    return
+  }
+  const tasks = records.map(async (picture) => {
+    if (!picture.id) {
+      return
+    }
+    try {
+      const res = await getPictureInteractStatusUsingGet({
+        pictureId: picture.id,
+      } as any)
+      if (res.data.code === 200) {
+        picture.thumbCount = Number(res.data.data?.thumbCount ?? 0)
+      }
+    } catch {
+      picture.thumbCount = 0
+    }
+  })
+  await Promise.allSettled(tasks)
 }
 
 const onPageChange = (page: number, pageSize: number) => {

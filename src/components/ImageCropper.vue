@@ -83,11 +83,12 @@ import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import PictureEditWebSocket from '@/utils/pictureEditWebSocket.ts'
 import { PICTURE_EDIT_ACTION_ENUM, PICTURE_EDIT_MESSAGE_TYPE_ENUM } from '@/constants/picture.ts'
 import { SPACE_TYPE_ENUM } from '@/constants/space.ts'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   imageUrl?: string
   picture?: API.PictureVO
-  spaceId?: number
+  spaceId?: number | string
   space?: API.SpaceVO
   onSuccess?: (newPicture: API.PictureVO) => void
 }
@@ -166,8 +167,15 @@ const handleConfirm = () => {
 const handleUpload = async (file: File) => {
   loading.value = true
   try {
-    const params: API.PictureUploadRequest = props.picture ? { id: props.picture.id } : {}
-    params.spaceId = props.spaceId
+    const params: API.PictureUploadRequest = {}
+    const pictureId = toIdString(props.picture?.id)
+    const spaceId = toIdString(props.spaceId)
+    if (pictureId) {
+      params.id = pictureId as any
+    }
+    if (spaceId) {
+      params.spaceId = spaceId as any
+    }
     const res = await uploadPictureUsingPost(params, {}, file)
     if (res.data.code === 200 && res.data.data) {
       message.success('图片上传成功')
@@ -198,7 +206,7 @@ const cleanupWebsocket = () => {
 }
 
 const initWebsocket = () => {
-  const pictureId = props.picture?.id
+  const pictureId = toIdString(props.picture?.id)
   if (!pictureId || !visible.value || !isTeamSpace.value) {
     return
   }

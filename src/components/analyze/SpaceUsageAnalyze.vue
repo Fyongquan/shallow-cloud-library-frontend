@@ -25,11 +25,12 @@ import { ref, watchEffect } from 'vue'
 import { getSpaceUsageAnalyzeUsingPost } from '@/api/spaceAnalyzeController.ts'
 import { message } from 'ant-design-vue'
 import { formatSize } from '@/utils'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   queryAll?: boolean
   queryPublic?: boolean
-  spaceId?: number
+  spaceId?: string | number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -49,7 +50,7 @@ const fetchData = async () => {
   const res = await getSpaceUsageAnalyzeUsingPost({
     queryAll: props.queryAll,
     queryPublic: props.queryPublic,
-    spaceId: props.spaceId,
+    spaceId: toIdString(props.spaceId) as any,
   })
   if (res.data.code === 200 && res.data.data) {
     data.value = res.data.data

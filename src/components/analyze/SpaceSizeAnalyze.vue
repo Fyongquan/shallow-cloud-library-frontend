@@ -12,11 +12,12 @@ import 'echarts'
 import { computed, ref, watchEffect } from 'vue'
 import { getSpaceSizeAnalyzeUsingPost } from '@/api/spaceAnalyzeController.ts'
 import { message } from 'ant-design-vue'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   queryAll?: boolean
   queryPublic?: boolean
-  spaceId?: number
+  spaceId?: string | number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -36,7 +37,7 @@ const fetchData = async () => {
   const res = await getSpaceSizeAnalyzeUsingPost({
     queryAll: props.queryAll,
     queryPublic: props.queryPublic,
-    spaceId: props.spaceId,
+    spaceId: toIdString(props.spaceId) as any,
   })
   if (res.data.code === 200 && res.data.data) {
     dataList.value = res.data.data ?? []

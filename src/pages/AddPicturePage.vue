@@ -136,6 +136,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
 import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
 import { SPACE_PERMISSION_ENUM } from '@/constants/space.ts'
+import { toIdString } from '@/utils/id'
 
 const router = useRouter()
 const route = useRoute()
@@ -145,8 +146,8 @@ const pictureForm = reactive<API.PictureEditRequest>({
   publishToPublic: route.query.syncPublic === '1',
 })
 const uploadType = ref<'file' | 'url'>('file')
-const isEditMode = computed(() => Boolean(route.query?.id))
-const spaceId = computed(() => route.query?.spaceId as string | undefined)
+const isEditMode = computed(() => Boolean(toIdString(route.query?.id)))
+const spaceId = computed(() => toIdString(route.query?.spaceId))
 const fromPath = computed(() => route.query?.from as string | undefined)
 
 const canEditCurrentPicture = computed(() => {
@@ -168,12 +169,13 @@ const onSuccess = (newPicture: API.PictureVO) => {
 }
 
 const handleSubmit = async () => {
-  const pictureId = picture.value?.id
+  const pictureId = toIdString(picture.value?.id)
   if (!pictureId) {
+    message.error('图片 id 无效')
     return
   }
   const editPayload: API.PictureEditRequest = {
-    id: pictureId,
+    id: pictureId as any,
     name: pictureForm.name,
     introduction: pictureForm.introduction,
     category: pictureForm.category,
@@ -224,7 +226,7 @@ onMounted(() => {
 })
 
 const getOldPicture = async () => {
-  const id = route.query?.id
+  const id = toIdString(route.query?.id)
   if (!id) {
     return
   }
@@ -277,7 +279,7 @@ const fetchSpace = async () => {
     return
   }
   const res = await getSpaceVoByIdUsingGet({
-    id: spaceId.value,
+    id: spaceId.value as any,
   })
   if (res.data.code === 200 && res.data.data) {
     space.value = res.data.data

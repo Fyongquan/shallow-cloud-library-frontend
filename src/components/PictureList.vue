@@ -18,13 +18,22 @@
             <a-card-meta :title="picture.name">
               <template #description>
                 <a-flex>
-                  <a-tag v-if="picture.publishToPublic && picture.reviewStatus === 1" color="blue">
+                  <a-tag
+                    v-if="canSeePublicStatusTag(picture) && picture.publishToPublic && picture.reviewStatus === 1"
+                    color="blue"
+                  >
                     公共图库中
                   </a-tag>
-                  <a-tag v-else-if="picture.publishToPublic && picture.reviewStatus === 0" color="orange">
+                  <a-tag
+                    v-else-if="canSeePublicStatusTag(picture) && picture.publishToPublic && picture.reviewStatus === 0"
+                    color="orange"
+                  >
                     公开审核中
                   </a-tag>
-                  <a-tag v-else-if="picture.publishToPublic && picture.reviewStatus === 2" color="red">
+                  <a-tag
+                    v-else-if="canSeePublicStatusTag(picture) && picture.publishToPublic && picture.reviewStatus === 2"
+                    color="red"
+                  >
                     公开审核未通过
                   </a-tag>
                   <a-tag color="green">
@@ -36,6 +45,12 @@
                 </a-flex>
               </template>
             </a-card-meta>
+            <div v-if="showPublicThumbCount && !showOp" class="public-thumb-bar">
+              <span class="public-thumb-count">
+                <LikeFilled class="public-thumb-icon" />
+                {{ getThumbCount(picture) }}
+              </span>
+            </div>
             <template v-if="showOp" #actions>
               <ShareAltOutlined @click="(e) => doShare(picture, e)" />
               <SearchOutlined @click="(e) => doSearch(picture, e)" />
@@ -56,12 +71,15 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   DeleteOutlined,
   EditOutlined,
+  LikeFilled,
   SearchOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons-vue'
 import { createPictureShareUsingPost, deletePictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import ShareModal from '@/components/ShareModal.vue'
+import { isSameId, toIdString } from '@/utils/id'
+import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 
 interface Props {
   dataList?: API.PictureVO[]
@@ -69,6 +87,7 @@ interface Props {
   showOp?: boolean
   canEdit?: boolean
   canDelete?: boolean
+  showPublicThumbCount?: boolean
   onReload?: () => void
 }
 
@@ -78,14 +97,21 @@ const props = withDefaults(defineProps<Props>(), {
   showOp: false,
   canEdit: false,
   canDelete: false,
+  showPublicThumbCount: false,
 })
 
 const router = useRouter()
 const route = useRoute()
+const loginUserStore = useLoginUserStore()
 
 const doClickPicture = (picture: API.PictureVO) => {
+  const pictureId = toIdString(picture.id)
+  if (!pictureId) {
+    message.error('图片 id 无效')
+    return
+  }
   router.push({
-    path: `/picture/${picture.id}`,
+    path: `/picture/${pictureId}`,
     query: {
       from: route.fullPath,
     },
@@ -94,20 +120,30 @@ const doClickPicture = (picture: API.PictureVO) => {
 
 const doSearch = (picture, e) => {
   e.stopPropagation()
+  const pictureId = toIdString(picture.id)
+  if (!pictureId) {
+    message.error('图片 id 无效')
+    return
+  }
   router.push({
     path: '/search_picture',
     query: {
-      pictureId: picture.id,
+      pictureId,
     },
   })
 }
 
 const doEdit = (picture, e) => {
   e.stopPropagation()
+  const pictureId = toIdString(picture.id)
+  if (!pictureId) {
+    message.error('图片 id 无效')
+    return
+  }
   router.push({
     path: '/add_picture',
     query: {
-      id: picture.id,
+      id: pictureId,
       spaceId: picture.spaceId,
       from: route.fullPath,
     },
@@ -116,8 +152,9 @@ const doEdit = (picture, e) => {
 
 const doDelete = async (picture, e) => {
   e.stopPropagation()
-  const id = picture.id
+  const id = toIdString(picture.id)
   if (!id) {
+    message.error('图片 id 无效')
     return
   }
   const res = await deletePictureUsingPost({ id })
@@ -142,11 +179,13 @@ const formatExpireTime = (expireTime?: string) => {
 
 const doShare = async (picture, e) => {
   e.stopPropagation()
-  if (!picture.id) {
+  const pictureId = toIdString(picture.id)
+  if (!pictureId) {
+    message.error('图片 id 无效')
     return
   }
   const res = await createPictureShareUsingPost({
-    pictureId: picture.id,
+    pictureId,
   })
   if (res.data.code !== 200 || !res.data.data?.sharePath) {
     message.error(res.data.message ?? '生成分享链接失败')
@@ -158,6 +197,37 @@ const doShare = async (picture, e) => {
     shareModalRef.value.openModal()
   }
 }
+
+const getThumbCount = (picture: API.PictureVO) => {
+  return Number((picture as API.PictureVO & { thumbCount?: number }).thumbCount ?? 0)
+}
+
+const canSeePublicStatusTag = (picture: API.PictureVO) => {
+  return isSameId(picture.userId, loginUserStore.loginUser?.id)
+}
 </script>
 
-<style scoped></style>
+<style scoped>
+.public-thumb-bar {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.public-thumb-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 64px;
+  justify-content: center;
+  padding: 4px 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 999px;
+  color: rgba(0, 0, 0, 0.85);
+  background: #fff;
+}
+
+.public-thumb-icon {
+  color: #000;
+}
+</style>
