@@ -51,11 +51,14 @@
       :columns="columns"
       :data-source="dataList"
       :pagination="pagination"
+      :scroll="{ x: 2300 }"
       @change="doTableChange"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'url'">
-          <a-image :src="record.url" :width="120" />
+          <div class="picture-cell">
+            <a-image :src="record.url" :width="120" :preview="true" />
+          </div>
         </template>
 
         <template v-else-if="column.dataIndex === 'tags'">
@@ -75,12 +78,18 @@
         </template>
 
         <template v-else-if="column.dataIndex === 'reviewMessage'">
-          <div>审核状态：{{ PIC_REVIEW_STATUS_MAP[record.reviewStatus] }}</div>
-          <div>审核信息：{{ record.reviewMessage || '-' }}</div>
-          <div>审核人：{{ record.reviewerId || '-' }}</div>
-          <div v-if="record.reviewTime">
-            审核时间：{{ dayjs(record.reviewTime).format('YYYY-MM-DD HH:mm:ss') }}
-          </div>
+          <template v-if="canReviewRecord(record)">
+            <div>审核状态：{{ PIC_REVIEW_STATUS_MAP[record.reviewStatus] }}</div>
+            <div>审核信息：{{ record.reviewMessage || '-' }}</div>
+            <div>审核人：{{ record.reviewerId || '-' }}</div>
+            <div v-if="record.reviewTime">
+              审核时间：{{ dayjs(record.reviewTime).format('YYYY-MM-DD HH:mm:ss') }}
+            </div>
+          </template>
+          <template v-else>
+            <div>审核状态：无需审核</div>
+            <div>审核信息：该图片未同步到公共图库</div>
+          </template>
         </template>
 
         <template v-else-if="column.dataIndex === 'createTime'">
@@ -94,14 +103,14 @@
         <template v-else-if="column.key === 'action'">
           <a-space wrap>
             <a-button
-              v-if="record.reviewStatus !== PIC_REVIEW_STATUS_ENUM.PASS"
+              v-if="canReviewRecord(record) && record.reviewStatus !== PIC_REVIEW_STATUS_ENUM.PASS"
               type="link"
               @click="handleReview(record, PIC_REVIEW_STATUS_ENUM.PASS)"
             >
               通过
             </a-button>
             <a-button
-              v-if="record.reviewStatus !== PIC_REVIEW_STATUS_ENUM.REJECT"
+              v-if="canReviewRecord(record) && record.reviewStatus !== PIC_REVIEW_STATUS_ENUM.REJECT"
               type="link"
               danger
               @click="handleReview(record, PIC_REVIEW_STATUS_ENUM.REJECT)"
@@ -142,27 +151,33 @@ const columns = [
   {
     title: '图片',
     dataIndex: 'url',
+    width: 160,
   },
   {
     title: '名称',
     dataIndex: 'name',
+    width: 180,
   },
   {
     title: '简介',
     dataIndex: 'introduction',
     ellipsis: true,
+    width: 220,
   },
   {
     title: '分类',
     dataIndex: 'category',
+    width: 120,
   },
   {
     title: '标签',
     dataIndex: 'tags',
+    width: 220,
   },
   {
     title: '图片信息',
     dataIndex: 'picInfo',
+    width: 200,
   },
   {
     title: '用户 ID',
@@ -177,18 +192,23 @@ const columns = [
   {
     title: '审核信息',
     dataIndex: 'reviewMessage',
+    width: 280,
   },
   {
     title: '创建时间',
     dataIndex: 'createTime',
+    width: 180,
   },
   {
     title: '编辑时间',
     dataIndex: 'editTime',
+    width: 180,
   },
   {
     title: '操作',
     key: 'action',
+    width: 170,
+    fixed: 'right',
   },
 ]
 
@@ -219,6 +239,10 @@ const formatPicSize = (size?: number) => {
     return '-'
   }
   return `${(size / 1024).toFixed(2)} KB`
+}
+
+const canReviewRecord = (record: API.Picture) => {
+  return record.spaceId == null || Number(record.publishToPublic ?? 0) === 1
 }
 
 const fetchData = async () => {
@@ -303,3 +327,16 @@ const handleReview = async (record: API.Picture, reviewStatus: number) => {
   }
 }
 </script>
+
+<style scoped>
+#pictureManagePage .picture-cell {
+  width: 120px;
+  overflow: hidden;
+}
+
+#pictureManagePage .picture-cell :deep(.ant-image),
+#pictureManagePage .picture-cell :deep(.ant-image-img) {
+  width: 120px;
+  max-width: 120px;
+}
+</style>

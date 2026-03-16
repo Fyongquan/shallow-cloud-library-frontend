@@ -93,31 +93,35 @@ const router = useRouter()
 const handleSubmit = async (values: any) => {
   const spaceId = space.value?.id
   loading.value = true
-  let res
-  if (spaceId) {
-    // 更新
-    res = await updateSpaceUsingPost({
-      id: spaceId,
-      ...spaceForm,
-    })
-  } else {
-    // 创建
-    res = await addSpaceUsingPost({
-      ...spaceForm,
-      spaceType: spaceType.value,
-    })
+  try {
+    let res
+    if (spaceId) {
+      res = await updateSpaceUsingPost({
+        id: spaceId,
+        ...spaceForm,
+      })
+    } else {
+      res = await addSpaceUsingPost({
+        ...spaceForm,
+        spaceType: spaceType.value,
+      })
+    }
+    if (res.data.code === 200 && res.data.data) {
+      message.success('操作成功')
+      await router.push({
+        path: `/space/${res.data.data}`,
+      })
+      return
+    }
+    // 非 200 业务错误由 request.ts 统一提示，避免重复弹窗
+  } catch (error: any) {
+    // HTTP 异常也由 request.ts 统一提示，这里只兜底未知错误
+    if (!error?.response?.data?.message) {
+      message.error('请求失败，请稍后重试')
+    }
+  } finally {
+    loading.value = false
   }
-  // 操作成功
-  if (res.data.code === 200 && res.data.data) {
-    message.success('操作成功')
-    // 跳转到空间详情页
-    router.push({
-      path: `/space/${res.data.data}`,
-    })
-  } else {
-    message.error('操作失败，' + res.data.message)
-  }
-  loading.value = false
 }
 
 // 获取老数据

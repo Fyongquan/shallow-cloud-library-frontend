@@ -50,11 +50,6 @@ const handleUpload = async () => {
     }
     const res = await uploadPictureByUrlUsingPost(params)
     if (res.data.code === 200 && res.data.data) {
-      if (props.publishToPublic && res.data.data.reviewStatus === 0) {
-        message.success('图片已提交审核')
-      } else {
-        message.success('图片上传成功')
-      }
       props.onSuccess?.(res.data.data)
       return
     }
