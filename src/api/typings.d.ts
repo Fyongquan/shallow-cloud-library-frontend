@@ -413,6 +413,8 @@ declare namespace API {
     category?: string
     current?: number
     endEditTime?: string
+    favorOnly?: boolean
+    favorUserId?: number
     id?: number
     introduction?: string
     name?: string

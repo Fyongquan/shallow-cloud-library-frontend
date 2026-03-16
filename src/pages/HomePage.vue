@@ -9,10 +9,23 @@
         @search="doSearch"
       />
     </div>
-    <div v-if="loginUserStore.loginUser.id" class="action-bar">
-      <a-button type="primary" @click="router.push('/my_space?uploadToPublic=1')">
-        上传到公共图库
-      </a-button>
+    <div class="action-bar">
+      <a-space>
+        <a-checkbox
+          v-model:checked="favorOnly"
+          :disabled="!loginUserStore.loginUser.id"
+          @change="doSearch"
+        >
+          仅看我的收藏
+        </a-checkbox>
+        <a-button
+          v-if="loginUserStore.loginUser.id"
+          type="primary"
+          @click="router.push('/my_space?uploadToPublic=1')"
+        >
+          上传到公共图库
+        </a-button>
+      </a-space>
     </div>
     <a-tabs v-model:active-key="selectedCategory" @change="doSearch">
       <a-tab-pane key="all" tab="全部" />
@@ -75,6 +88,7 @@ const categoryList = ref<string[]>([])
 const selectedCategory = ref<string>('all')
 const tagList = ref<string[]>([])
 const selectedTagList = ref<boolean[]>([])
+const favorOnly = ref(false)
 
 const fetchData = async () => {
   loading.value = true
@@ -90,6 +104,7 @@ const fetchData = async () => {
       params.tags.push(tagList.value[index])
     }
   })
+  params.favorOnly = favorOnly.value && !!loginUserStore.loginUser.id
   const res = await listPictureVoByPageUsingPost(params)
   if (res.data.code === 200 && res.data.data) {
     const records = (res.data.data.records ?? []) as PublicPictureVO[]
