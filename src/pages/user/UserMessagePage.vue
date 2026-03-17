@@ -1,0 +1,217 @@
+﻿<template>
+  <div id="userMessagePage">
+    <a-card title="消息中心" :bordered="false">
+      <a-tabs v-model:activeKey="activeTab" @change="onTabChange">
+        <a-tab-pane key="interaction" tab="互动消息" />
+        <a-tab-pane key="system" tab="系统通知" />
+      </a-tabs>
+
+      <div class="toolbar">
+        <a-button type="link" @click="readAllCurrentTab" :disabled="loading || !messageList.length">
+          全部标为已读
+        </a-button>
+      </div>
+
+      <a-spin :spinning="loading">
+        <a-empty v-if="!messageList.length" description="暂无消息" />
+        <a-list v-else :data-source="messageList" item-layout="horizontal">
+          <template #renderItem="{ item }">
+            <a-list-item class="message-item" @click="onMessageClick(item)">
+              <a-list-item-meta>
+                <template #avatar>
+                  <a-badge dot :offset="[-2, 30]" :status="item.messageState === 0 ? 'error' : 'default'">
+                    <a-avatar :src="item.sender?.userAvatar">
+                      {{ getSenderInitial(item) }}
+                    </a-avatar>
+                  </a-badge>
+                </template>
+                <template #title>
+                  <div class="message-title-row">
+                    <span class="message-title">{{ getTitle(item) }}</span>
+                    <a-tag v-if="item.messageState === 0" color="processing">未读</a-tag>
+                    <a-tag v-else>已读</a-tag>
+                  </div>
+                </template>
+                <template #description>
+                  <div class="message-content">{{ item.content || '-' }}</div>
+                  <div class="message-time">{{ formatTime(item.createTime) }}</div>
+                </template>
+              </a-list-item-meta>
+            </a-list-item>
+          </template>
+        </a-list>
+      </a-spin>
+
+      <div class="pagination-wrapper" v-if="total > 0">
+        <a-pagination
+          :current="current"
+          :page-size="pageSize"
+          :total="total"
+          :show-size-changer="false"
+          @change="onPageChange"
+        />
+      </div>
+    </a-card>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { message } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
+import {
+  listMessageVoByPageUsingPost,
+  readAllMessageUsingPost,
+  readMessageUsingPost,
+  type MessageVO,
+} from '@/api/messageController'
+
+const router = useRouter()
+
+const activeTab = ref<'interaction' | 'system'>('interaction')
+const loading = ref(false)
+
+const current = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const messageList = ref<MessageVO[]>([])
+
+const interactionTypeList = ['like', 'favor', 'comment']
+
+const currentQuery = computed(() => {
+  if (activeTab.value === 'interaction') {
+    return {
+      current: current.value,
+      pageSize: pageSize.value,
+      messageTypeList: interactionTypeList,
+    }
+  }
+  return {
+    current: current.value,
+    pageSize: pageSize.value,
+    messageType: 'system',
+  }
+})
+
+const fetchMessageList = async () => {
+  loading.value = true
+  try {
+    const res = await listMessageVoByPageUsingPost(currentQuery.value)
+    if (res.data.code === 200 && res.data.data) {
+      messageList.value = res.data.data.records ?? []
+      total.value = res.data.data.total ?? 0
+      return
+    }
+    message.error(res.data.message || '获取消息失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const onTabChange = () => {
+  current.value = 1
+  fetchMessageList()
+}
+
+const onPageChange = (page: number) => {
+  current.value = page
+  fetchMessageList()
+}
+
+const readAllCurrentTab = async () => {
+  const body =
+    activeTab.value === 'interaction'
+      ? { messageTypeList: interactionTypeList }
+      : { messageType: 'system' }
+  const res = await readAllMessageUsingPost(body)
+  if (res.data.code !== 200) {
+    message.error(res.data.message || '标记失败')
+    return
+  }
+  message.success('已全部标为已读')
+  await fetchMessageList()
+}
+
+const onMessageClick = async (item: MessageVO) => {
+  if (item.id && item.messageState === 0) {
+    await readMessageUsingPost({ id: item.id })
+    item.messageState = 1
+  }
+  if (item.pictureId) {
+    await router.push(`/picture/${item.pictureId}`)
+  }
+}
+
+const getSenderInitial = (item: MessageVO) => {
+  const name = item.sender?.userName || '系'
+  return name.slice(0, 1)
+}
+
+const getTitle = (item: MessageVO) => {
+  if (item.messageType === 'like') {
+    return `${item.sender?.userName || '有用户'} 点赞了你的图片`
+  }
+  if (item.messageType === 'favor') {
+    return `${item.sender?.userName || '有用户'} 收藏了你的图片`
+  }
+  if (item.messageType === 'comment') {
+    return `${item.sender?.userName || '有用户'} 评论了你的图片`
+  }
+  return '系统通知'
+}
+
+const formatTime = (value?: string) => {
+  if (!value) {
+    return ''
+  }
+  return new Date(value).toLocaleString()
+}
+
+onMounted(() => {
+  fetchMessageList()
+})
+</script>
+
+<style scoped>
+#userMessagePage {
+  margin-bottom: 20px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.message-item {
+  cursor: pointer;
+}
+
+.message-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-title {
+  font-weight: 500;
+}
+
+.message-content {
+  color: rgba(0, 0, 0, 0.75);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-time {
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+</style>

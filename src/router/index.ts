@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserProfileCenterPage from '@/pages/user/UserProfileCenterPage.vue'
@@ -16,6 +16,7 @@ import SearchPicturePage from '@/pages/SearchPicturePage.vue'
 import SpaceAnalyzePage from '@/pages/SpaceAnalyzePage.vue'
 import SpaceUserManagePage from '@/pages/admin/SpaceUserManagePage.vue'
 import UserExchangeVipPage from '@/pages/UserExchangeVipPage.vue'
+import UserMessagePage from '@/pages/user/UserMessagePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,6 +40,14 @@ const router = createRouter({
       path: '/user/profile',
       name: '个人中心',
       component: UserProfileCenterPage,
+      meta: {
+        requireLogin: true,
+      },
+    },
+    {
+      path: '/user/messages',
+      name: '消息中心',
+      component: UserMessagePage,
       meta: {
         requireLogin: true,
       },
