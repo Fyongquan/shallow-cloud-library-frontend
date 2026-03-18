@@ -17,6 +17,7 @@ import SpaceAnalyzePage from '@/pages/SpaceAnalyzePage.vue'
 import SpaceUserManagePage from '@/pages/admin/SpaceUserManagePage.vue'
 import UserExchangeVipPage from '@/pages/UserExchangeVipPage.vue'
 import UserMessagePage from '@/pages/user/UserMessagePage.vue'
+import UserAiAssistantPage from '@/pages/user/UserAiAssistantPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,6 +49,14 @@ const router = createRouter({
       path: '/user/messages',
       name: '消息中心',
       component: UserMessagePage,
+      meta: {
+        requireLogin: true,
+      },
+    },
+    {
+      path: '/user/ai-assistant',
+      name: 'AI助手',
+      component: UserAiAssistantPage,
       meta: {
         requireLogin: true,
       },

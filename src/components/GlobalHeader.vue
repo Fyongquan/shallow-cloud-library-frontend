@@ -45,6 +45,12 @@
                     </router-link>
                   </a-menu-item>
                   <a-menu-item>
+                    <router-link to="/user/ai-assistant">
+                      <RobotOutlined />
+                      AI助手
+                    </router-link>
+                  </a-menu-item>
+                  <a-menu-item>
                     <router-link to="/my_space">
                       <UserOutlined />
                       我的空间
@@ -69,7 +75,7 @@
 
 <script lang="ts" setup>
 import { computed, h, onUnmounted, ref, watch } from 'vue'
-import { BellOutlined, HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { BellOutlined, HomeOutlined, LogoutOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import type { MenuProps } from 'ant-design-vue'
 import { useRouter } from 'vue-router'

@@ -18,7 +18,7 @@
 
 <script lang="ts" setup>
 import { computed, h, ref, watch, watchEffect } from 'vue'
-import { BellOutlined, PictureOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { BellOutlined, PictureOutlined, RobotOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { SPACE_TYPE_ENUM } from '@/constants/space.ts'
@@ -49,6 +49,11 @@ const fixedMenuItems = [
     key: '/user/messages',
     icon: () => h(BellOutlined),
     label: '消息中心',
+  },
+  {
+    key: '/user/ai-assistant',
+    icon: () => h(RobotOutlined),
+    label: 'AI助手',
   },
   {
     key: '/add_space',
