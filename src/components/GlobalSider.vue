@@ -17,7 +17,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, h, ref, watch, watchEffect } from 'vue'
+import { computed, h, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import { BellOutlined, PictureOutlined, RobotOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
@@ -154,6 +154,13 @@ const fetchPrivateSpaceId = async () => {
   }
 }
 
+const handleTeamSpaceUpdated = () => {
+  if (!loginUserStore.loginUser.id) {
+    return
+  }
+  fetchTeamSpaceList()
+}
+
 watchEffect(() => {
   if (loginUserStore.loginUser.id) {
     fetchTeamSpaceList()
@@ -173,6 +180,14 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(() => {
+  window.addEventListener('team-space-updated', handleTeamSpaceUpdated)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('team-space-updated', handleTeamSpaceUpdated)
+})
 
 const doMenuClick = ({ key }: { key: string }) => {
   if (key === '/add_space') {

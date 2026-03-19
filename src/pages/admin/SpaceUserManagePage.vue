@@ -4,12 +4,8 @@
       <h2>空间成员管理</h2>
       <a-space wrap>
         <a-button type="primary" href="/add_space">+ 创建空间</a-button>
-        <a-button type="primary" ghost href="/space_analyze?queryPublic=1">
-          分析公共图库
-        </a-button>
-        <a-button type="primary" ghost href="/space_analyze?queryAll=1">
-          分析全部空间
-        </a-button>
+        <a-button type="primary" ghost href="/space_analyze?queryPublic=1"> 分析公共图库 </a-button>
+        <a-button type="primary" ghost href="/space_analyze?queryAll=1"> 分析全部空间 </a-button>
       </a-space>
     </a-flex>
 
@@ -19,19 +15,15 @@
       type="info"
       show-icon
       style="margin-bottom: 16px"
-      message="添加成员时，请让对方先在个人中心查看并复制自己的用户 ID。"
+      message="添加成员后会先发送邀请，对方需要在消息中心同意后才会真正加入团队空间。"
     />
 
     <a-form layout="inline" :model="formData" @finish="handleSubmit">
       <a-form-item label="用户 ID" name="userId">
-        <a-input
-          v-model:value="formData.userId"
-          placeholder="请输入要添加的用户 ID"
-          allow-clear
-        />
+        <a-input v-model:value="formData.userId" placeholder="请输入要邀请的用户 ID" allow-clear />
       </a-form-item>
       <a-form-item>
-        <a-button type="primary" html-type="submit">添加用户</a-button>
+        <a-button type="primary" html-type="submit">发送邀请</a-button>
       </a-form-item>
     </a-form>
 
@@ -57,7 +49,14 @@
         </template>
         <template v-else-if="column.key === 'action'">
           <a-space wrap>
-            <a-button type="link" danger @click="doDelete(record.id)">删除</a-button>
+            <a-button
+              v-if="canRemoveMember(record)"
+              type="link"
+              danger
+              @click="doDelete(record.id)"
+            >
+              移除
+            </a-button>
           </a-space>
         </template>
       </template>
@@ -69,7 +68,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { SPACE_ROLE_OPTIONS } from '@/constants/space'
+import { SPACE_ROLE_ENUM, SPACE_ROLE_OPTIONS } from '@/constants/space'
 import {
   addSpaceUserUsingPost,
   deleteSpaceUserUsingPost,
@@ -77,12 +76,14 @@ import {
   listSpaceUserUsingPost,
 } from '@/api/spaceUserController'
 import { toIdString } from '@/utils/id'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
 
 interface Props {
   id: string
 }
 
 const props = defineProps<Props>()
+const loginUserStore = useLoginUserStore()
 
 const columns = [
   {
@@ -139,11 +140,11 @@ const handleSubmit = async () => {
     userId: userId as any,
   })
   if (res.data.code === 200) {
-    message.success('成员添加成功')
+    message.success('邀请已发送，对方同意后会加入空间')
     formData.userId = undefined
     await fetchData()
   } else {
-    message.error(`成员添加失败：${res.data.message}`)
+    message.error(`发送邀请失败：${res.data.message}`)
   }
 }
 
@@ -176,5 +177,19 @@ const doDelete = async (id?: string) => {
   } else {
     message.error('成员移除失败')
   }
+}
+
+const canRemoveMember = (record: API.SpaceUserVO) => {
+  const currentUserId = toIdString(loginUserStore.loginUser.id)
+  if (!currentUserId) {
+    return false
+  }
+  const currentMember = dataList.value.find(
+    (item) => toIdString(item.userId) === currentUserId,
+  )
+  if (!currentMember || currentMember.spaceRole !== SPACE_ROLE_ENUM.ADMIN) {
+    return false
+  }
+  return toIdString(record.userId) !== currentUserId
 }
 </script>

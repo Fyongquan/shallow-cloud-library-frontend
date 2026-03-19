@@ -84,3 +84,18 @@ export async function listMyTeamSpaceUsingPost(options?: { [key: string]: any })
     ...(options || {}),
   })
 }
+
+/** respondInvite POST /api/spaceUser/invite/respond */
+export async function respondSpaceInviteUsingPost(
+  body: { messageId: string | number; accept: boolean },
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/spaceUser/invite/respond', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}

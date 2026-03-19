@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div id="userMessagePage">
     <a-card title="消息中心" :bordered="false">
       <a-tabs v-model:activeKey="activeTab" @change="onTabChange">
@@ -29,11 +29,33 @@
                   <div class="message-title-row">
                     <span class="message-title">{{ getTitle(item) }}</span>
                     <a-tag v-if="item.messageState === 0" color="processing">未读</a-tag>
-                    <a-tag v-else>已读</a-tag>
+                    <a-tag v-else>已处理</a-tag>
                   </div>
                 </template>
                 <template #description>
                   <div class="message-content">{{ item.content || '-' }}</div>
+                  <div v-if="isInviteMessage(item)" class="message-actions">
+                    <a-space>
+                      <a-button
+                        type="primary"
+                        size="small"
+                        :loading="inviteActionLoadingId === item.id && inviteActionType === 'accept'"
+                        :disabled="item.messageState === 1"
+                        @click.stop="handleInvite(item, true)"
+                      >
+                        同意
+                      </a-button>
+                      <a-button
+                        size="small"
+                        danger
+                        :loading="inviteActionLoadingId === item.id && inviteActionType === 'reject'"
+                        :disabled="item.messageState === 1"
+                        @click.stop="handleInvite(item, false)"
+                      >
+                        拒绝
+                      </a-button>
+                    </a-space>
+                  </div>
                   <div class="message-time">{{ formatTime(item.createTime) }}</div>
                 </template>
               </a-list-item-meta>
@@ -65,11 +87,14 @@ import {
   readMessageUsingPost,
   type MessageVO,
 } from '@/api/messageController'
+import { respondSpaceInviteUsingPost } from '@/api/spaceUserController'
 
 const router = useRouter()
 
 const activeTab = ref<'interaction' | 'system'>('interaction')
 const loading = ref(false)
+const inviteActionLoadingId = ref<number | string | undefined>()
+const inviteActionType = ref<'accept' | 'reject' | undefined>()
 
 const current = ref(1)
 const pageSize = ref(10)
@@ -77,6 +102,7 @@ const total = ref(0)
 const messageList = ref<MessageVO[]>([])
 
 const interactionTypeList = ['like', 'favor', 'comment']
+const systemTypeList = ['system', 'spaceInvite']
 
 const currentQuery = computed(() => {
   if (activeTab.value === 'interaction') {
@@ -89,7 +115,7 @@ const currentQuery = computed(() => {
   return {
     current: current.value,
     pageSize: pageSize.value,
-    messageType: 'system',
+    messageTypeList: systemTypeList,
   }
 })
 
@@ -132,13 +158,48 @@ const readAllCurrentTab = async () => {
   await fetchMessageList()
 }
 
+const isInviteMessage = (item: MessageVO) => item.messageType === 'spaceInvite'
+
 const onMessageClick = async (item: MessageVO) => {
+  if (isInviteMessage(item)) {
+    return
+  }
   if (item.id && item.messageState === 0) {
     await readMessageUsingPost({ id: item.id })
     item.messageState = 1
   }
   if (item.pictureId) {
     await router.push(`/picture/${item.pictureId}`)
+  }
+}
+
+const handleInvite = async (item: MessageVO, accept: boolean) => {
+  if (!item.id) {
+    return
+  }
+  inviteActionLoadingId.value = item.id
+  inviteActionType.value = accept ? 'accept' : 'reject'
+  try {
+    const res = await respondSpaceInviteUsingPost({
+      messageId: item.id,
+      accept,
+    })
+    if (res.data.code !== 200) {
+      message.error(res.data.message || '处理邀请失败')
+      return
+    }
+    item.messageState = 1
+    item.content = accept
+      ? '你已同意该空间邀请，现已加入对应团队空间。'
+      : '你已拒绝该空间邀请。'
+    if (accept) {
+      window.dispatchEvent(new CustomEvent('team-space-updated'))
+    }
+    message.success(accept ? '已同意邀请' : '已拒绝邀请')
+    await fetchMessageList()
+  } finally {
+    inviteActionLoadingId.value = undefined
+    inviteActionType.value = undefined
   }
 }
 
@@ -156,6 +217,9 @@ const getTitle = (item: MessageVO) => {
   }
   if (item.messageType === 'comment') {
     return `${item.sender?.userName || '有用户'} 评论了你的图片`
+  }
+  if (item.messageType === 'spaceInvite') {
+    return `${item.sender?.userName || '空间管理员'} 邀请你加入团队空间`
   }
   return '系统通知'
 }
@@ -201,6 +265,10 @@ onMounted(() => {
   color: rgba(0, 0, 0, 0.75);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.message-actions {
+  margin-top: 8px;
 }
 
 .message-time {

@@ -10,7 +10,7 @@ export interface MessageVO {
   id?: number | string
   userId?: number | string
   content?: string
-  messageType?: 'like' | 'favor' | 'comment' | 'system' | string
+  messageType?: 'like' | 'favor' | 'comment' | 'system' | 'spaceInvite' | string
   messageState?: 0 | 1 | number
   senderId?: number | string
   pictureId?: number | string
