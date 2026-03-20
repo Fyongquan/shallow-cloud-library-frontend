@@ -19,9 +19,15 @@ export interface PictureCommentVO {
   id?: number | string
   userId?: number | string
   pictureId?: number | string
+  parentId?: number | string
+  rootId?: number | string
+  replyUserId?: number | string
   content?: string
   createTime?: string
+  updateTime?: string
   user?: API.UserVO
+  replyUser?: API.UserVO
+  children?: PictureCommentVO[]
 }
 
 export interface PageResult<T> {
@@ -99,10 +105,29 @@ export async function undoPictureFavorUsingPost(
 }
 
 export async function addPictureCommentUsingPost(
-  body: { pictureId: number | string; content: string },
+  body: {
+    pictureId: number | string
+    content: string
+    parentId?: number | string
+    replyUserId?: number | string
+  },
   options?: Record<string, any>,
 ) {
   return request<BaseResponse<PictureCommentVO>>('/api/picture_comment/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+export async function editPictureCommentUsingPost(
+  body: { id: number | string; content: string },
+  options?: Record<string, any>,
+) {
+  return request<BaseResponse<PictureCommentVO>>('/api/picture_comment/edit', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

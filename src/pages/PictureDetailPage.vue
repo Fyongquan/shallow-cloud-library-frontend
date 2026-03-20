@@ -86,7 +86,7 @@
         </a-card>
       </a-col>
     </a-row>
-    <a-card title="互动" style="margin-top: 16px">
+    <a-card title="互动" class="interaction-card" style="margin-top: 16px">
       <a-space wrap>
         <a-button :loading="thumbLoading" @click="toggleThumb">
           <template #icon>
@@ -110,57 +110,52 @@
         </a-tag>
       </a-space>
       <a-divider />
-      <a-space direction="vertical" style="width: 100%">
+      <a-space direction="vertical" style="width: 100%" class="comment-editor-wrap">
         <a-textarea
-          v-model:value="commentContent"
+          v-model:value="rootCommentContent"
           :maxlength="500"
           :auto-size="{ minRows: 2, maxRows: 4 }"
           placeholder="写点评论吧（最多 500 字）"
         />
         <div class="comment-action-row">
-          <a-button type="primary" :loading="commentSubmitting" @click="submitComment">
+          <a-button type="primary" :loading="commentSubmitting" @click="submitRootComment">
             发表评论
           </a-button>
         </div>
       </a-space>
       <a-divider />
-      <a-list
-        :data-source="commentList"
-        :loading="commentLoading"
-        item-layout="horizontal"
-        :locale="{ emptyText: '还没有评论，来写第一条吧' }"
-      >
-        <template #renderItem="{ item }">
-          <a-list-item>
-            <template #actions>
-              <a-button
-                v-if="canDeleteComment(item)"
-                type="link"
-                danger
-                size="small"
-                @click="deleteComment(item.id)"
-              >
-                删除
-              </a-button>
-            </template>
-            <a-list-item-meta>
-              <template #avatar>
-                <a-avatar :src="item.user?.userAvatar" />
-              </template>
-              <template #title>
-                <a-space size="small">
-                  <span>{{ item.user?.userName ?? `用户 ${item.userId}` }}</span>
-                  <span class="comment-time">{{ formatCommentTime(item.createTime) }}</span>
-                </a-space>
-              </template>
-              <template #description>
-                <div class="comment-content">{{ item.content }}</div>
-              </template>
-            </a-list-item-meta>
-          </a-list-item>
-        </template>
-      </a-list>
-      <div class="comment-pagination">
+      <a-spin :spinning="commentLoading">
+        <a-empty
+          v-if="!commentList.length"
+          description="还没有评论，来写第一条吧"
+        />
+        <div v-else class="comment-tree-list">
+          <PictureCommentTree
+            v-for="item in commentList"
+            :key="item.id"
+            :comment="item"
+            :login-user="loginUser"
+            :editing-comment-id="editingCommentId"
+            :editing-content="editingCommentContent"
+            :saving-edit="commentEditing"
+            :replying-comment-id="replyingCommentId"
+            :replying-content="replyingContent"
+            :submitting-reply="replySubmitting"
+            :expanded-ids="expandedCommentIds"
+            @reply-start="openReply"
+            @reply-cancel="cancelReply"
+            @reply-content-change="onReplyContentChange"
+            @reply-submit="submitReplyComment"
+            @toggle-children="toggleChildren"
+            @edit-start="startEditComment"
+            @edit-cancel="cancelEditComment"
+            @edit-content-change="onEditContentChange"
+            @edit-submit="submitEditComment"
+            @delete="onDeleteComment"
+          />
+        </div>
+      </a-spin>
+      <div v-if="commentTotal > commentPageSize" class="comment-pagination">
         <a-pagination
           :current="commentCurrent"
           :page-size="commentPageSize"
@@ -175,7 +170,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   createPictureShareUsingPost,
@@ -187,6 +182,7 @@ import {
   deletePictureCommentUsingPost,
   doPictureFavorUsingPost,
   doThumbUsingPost,
+  editPictureCommentUsingPost,
   getPictureInteractStatusUsingGet,
   listPictureCommentVoByPageUsingPost,
   type PictureCommentVO,
@@ -208,10 +204,11 @@ import {
 } from '@ant-design/icons-vue'
 import { downloadImage, formatSize, toHexColor } from '@/utils'
 import ShareModal from '@/components/ShareModal.vue'
+import PictureCommentTree from '@/components/PictureCommentTree.vue'
 import { SPACE_PERMISSION_ENUM } from '@/constants/space.ts'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { storeToRefs } from 'pinia'
-import { isSameId, toIdString } from '@/utils/id'
+import { toIdString } from '@/utils/id'
 
 interface Props {
   id: string | number
@@ -338,11 +335,20 @@ const thumbLoading = ref(false)
 const favorLoading = ref(false)
 const commentLoading = ref(false)
 const commentSubmitting = ref(false)
-const commentContent = ref('')
+const rootCommentContent = ref('')
 const commentList = ref<PictureCommentVO[]>([])
 const commentCurrent = ref(1)
-const commentPageSize = ref(10)
+const commentPageSize = ref(5)
 const commentTotal = ref(0)
+const commentPollingTimer = ref<number>()
+const replyingCommentId = ref<number | string>()
+const replyingContent = ref('')
+const replySubmitting = ref(false)
+const expandedCommentIds = ref<Array<number | string>>([])
+
+const editingCommentId = ref<number | string>()
+const editingCommentContent = ref('')
+const commentEditing = ref(false)
 
 const fetchInteractStatus = async () => {
   if (!picture.value.id) {
@@ -374,15 +380,95 @@ const fetchCommentList = async (current = 1) => {
       pageSize: commentPageSize.value,
     })
     if (res.data.code === 200 && res.data.data) {
-      commentList.value = res.data.data.records ?? []
+      commentList.value = normalizeCommentRecords(res.data.data.records ?? [])
       commentTotal.value = res.data.data.total ?? 0
       commentCurrent.value = current
-      interactStatus.value.commentCount = commentTotal.value
+      syncCommentUiState()
       return
     }
     message.error(res.data.message ?? '获取评论失败')
   } finally {
     commentLoading.value = false
+  }
+}
+
+const toTimestamp = (value?: string) => {
+  if (!value) {
+    return 0
+  }
+  const timestamp = new Date(value).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+const toNumericId = (id?: number | string) => {
+  const idStr = toIdString(id)
+  if (!idStr) {
+    return 0
+  }
+  const value = Number(idStr)
+  return Number.isNaN(value) ? 0 : value
+}
+
+const flattenCommentChildren = (children?: PictureCommentVO[]): PictureCommentVO[] => {
+  if (!children?.length) {
+    return []
+  }
+  const result: PictureCommentVO[] = []
+  const walk = (nodes: PictureCommentVO[]) => {
+    nodes.forEach((node) => {
+      const flatNode: PictureCommentVO = {
+        ...node,
+        children: [],
+      }
+      result.push(flatNode)
+      if (node.children?.length) {
+        walk(node.children)
+      }
+    })
+  }
+  walk(children)
+  return result.sort((a, b) => {
+    const timeDiff = toTimestamp(a.createTime) - toTimestamp(b.createTime)
+    if (timeDiff !== 0) {
+      return timeDiff
+    }
+    return toNumericId(a.id) - toNumericId(b.id)
+  })
+}
+
+const normalizeCommentRecords = (records: PictureCommentVO[]) => {
+  return records.map((rootComment) => ({
+    ...rootComment,
+    children: flattenCommentChildren(rootComment.children),
+  }))
+}
+
+const collectCommentIds = (nodes: PictureCommentVO[]) => {
+  const result: string[] = []
+  const walk = (list: PictureCommentVO[]) => {
+    list.forEach((item) => {
+      const id = toIdString(item.id)
+      if (id) {
+        result.push(id)
+      }
+      if (item.children?.length) {
+        walk(item.children)
+      }
+    })
+  }
+  walk(nodes)
+  return result
+}
+
+const syncCommentUiState = () => {
+  const idSet = new Set(collectCommentIds(commentList.value))
+  expandedCommentIds.value = expandedCommentIds.value
+    .map((id) => toIdString(id))
+    .filter((id): id is string => Boolean(id))
+    .filter((id) => idSet.has(id))
+  const currentReplyId = toIdString(replyingCommentId.value)
+  if (currentReplyId && !idSet.has(currentReplyId)) {
+    cancelReply()
   }
 }
 
@@ -420,11 +506,12 @@ const toggleFavor = async () => {
   }
 }
 
-const submitComment = async () => {
+const submitRootComment = async () => {
   if (!picture.value.id) {
     return
   }
-  if (!commentContent.value.trim()) {
+  const safeContent = rootCommentContent.value.trim()
+  if (!safeContent) {
     message.warning('请输入评论内容')
     return
   }
@@ -432,13 +519,13 @@ const submitComment = async () => {
   try {
     const res = await addPictureCommentUsingPost({
       pictureId: picture.value.id,
-      content: commentContent.value.trim(),
+      content: safeContent,
     })
     if (res.data.code !== 200) {
       message.error(res.data.message ?? '发表评论失败')
       return
     }
-    commentContent.value = ''
+    rootCommentContent.value = ''
     message.success('评论成功')
     await fetchInteractStatus()
     await fetchCommentList(1)
@@ -447,14 +534,125 @@ const submitComment = async () => {
   }
 }
 
-const canDeleteComment = (comment: PictureCommentVO) => {
-  if (!loginUser.value?.id || !comment.userId) {
-    return false
+const openReply = (comment: PictureCommentVO) => {
+  if (!comment.id || !comment.userId) {
+    return
   }
-  if (loginUser.value.userRole === 'admin') {
-    return true
+  const commentId = toIdString(comment.id)
+  if (!commentId) {
+    return
   }
-  return isSameId(loginUser.value.id, comment.userId)
+  if (replyingCommentId.value && toIdString(replyingCommentId.value) === commentId) {
+    cancelReply()
+    return
+  }
+  cancelEditComment()
+  replyingCommentId.value = commentId
+  replyingContent.value = ''
+}
+
+const onReplyContentChange = (content: string) => {
+  replyingContent.value = content
+}
+
+const submitReplyComment = async (payload: {
+  parentId: number | string
+  replyUserId: number | string
+  content: string
+}) => {
+  if (!picture.value.id) {
+    return
+  }
+  const safeContent = payload.content.trim()
+  if (!safeContent) {
+    message.warning('请输入回复内容')
+    return
+  }
+  replySubmitting.value = true
+  try {
+    const res = await addPictureCommentUsingPost({
+      pictureId: picture.value.id,
+      content: safeContent,
+      parentId: payload.parentId,
+      replyUserId: payload.replyUserId,
+    })
+    if (res.data.code !== 200) {
+      message.error(res.data.message ?? '回复失败')
+      return
+    }
+    const parentId = toIdString(payload.parentId)
+    if (parentId && !expandedCommentIds.value.some((id) => toIdString(id) === parentId)) {
+      expandedCommentIds.value.push(parentId)
+    }
+    cancelReply()
+    message.success('回复成功')
+    await fetchInteractStatus()
+    await fetchCommentList(commentCurrent.value)
+  } finally {
+    replySubmitting.value = false
+  }
+}
+
+const cancelReply = () => {
+  replyingCommentId.value = undefined
+  replyingContent.value = ''
+}
+
+const toggleChildren = (comment: PictureCommentVO) => {
+  const id = toIdString(comment.id)
+  if (!id) {
+    return
+  }
+  const next = [...expandedCommentIds.value]
+  const index = next.findIndex((item) => toIdString(item) === id)
+  if (index >= 0) {
+    next.splice(index, 1)
+  } else {
+    next.push(id)
+  }
+  expandedCommentIds.value = next
+}
+
+const startEditComment = (comment: PictureCommentVO) => {
+  if (!comment.id) {
+    return
+  }
+  cancelReply()
+  editingCommentId.value = comment.id
+  editingCommentContent.value = comment.content ?? ''
+}
+
+const cancelEditComment = () => {
+  editingCommentId.value = undefined
+  editingCommentContent.value = ''
+}
+
+const onEditContentChange = (content: string) => {
+  editingCommentContent.value = content
+}
+
+const submitEditComment = async (payload: { id: number | string; content: string }) => {
+  const safeContent = payload.content.trim()
+  if (!safeContent) {
+    message.warning('请输入评论内容')
+    return
+  }
+  commentEditing.value = true
+  try {
+    const res = await editPictureCommentUsingPost({
+      id: payload.id,
+      content: safeContent,
+    })
+    if (res.data.code !== 200) {
+      message.error(res.data.message ?? '编辑评论失败')
+      return
+    }
+    message.success('编辑评论成功')
+    cancelEditComment()
+    await fetchCommentList(commentCurrent.value)
+  } finally {
+    commentEditing.value = false
+  }
 }
 
 const deleteComment = async (commentId?: number | string) => {
@@ -472,21 +670,37 @@ const deleteComment = async (commentId?: number | string) => {
   await fetchCommentList(Math.min(commentCurrent.value, maxPage))
 }
 
+const onDeleteComment = async (comment: PictureCommentVO) => {
+  await deleteComment(comment.id)
+}
+
 const onCommentPageChange = (page: number) => {
   fetchCommentList(page)
 }
 
-const formatCommentTime = (value?: string) => {
-  if (!value) {
-    return ''
+const startCommentPolling = () => {
+  stopCommentPolling()
+  commentPollingTimer.value = window.setInterval(() => {
+    fetchCommentList(commentCurrent.value)
+  }, 5000)
+}
+
+const stopCommentPolling = () => {
+  if (commentPollingTimer.value) {
+    window.clearInterval(commentPollingTimer.value)
+    commentPollingTimer.value = undefined
   }
-  return new Date(value).toLocaleString()
 }
 
 onMounted(async () => {
   await fetchPictureDetail()
   await fetchInteractStatus()
   await fetchCommentList(1)
+  startCommentPolling()
+})
+
+onUnmounted(() => {
+  stopCommentPolling()
 })
 </script>
 
@@ -529,19 +743,27 @@ onMounted(async () => {
   justify-content: flex-end;
 }
 
-.comment-time {
-  color: #999;
-  font-size: 12px;
+.comment-editor-wrap {
+  padding: 4px 0;
 }
 
-.comment-content {
-  white-space: pre-wrap;
-  word-break: break-word;
+.comment-tree-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px;
 }
 
 .comment-pagination {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+:deep(.interaction-card .ant-card-body) {
+  padding-top: 12px;
+}
+
+:deep(.interaction-card .ant-divider-horizontal) {
+  margin: 14px 0;
 }
 </style>
