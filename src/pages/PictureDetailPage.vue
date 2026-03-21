@@ -68,7 +68,7 @@
           </a-descriptions>
           <a-space wrap>
             <a-button type="primary" @click="doDownload">
-              免费下载
+              下载图片
               <template #icon>
                 <DownloadOutlined />
               </template>
@@ -241,11 +241,13 @@ const fetchPictureDetail = async () => {
     })
     if (res.data.code === 200 && res.data.data) {
       picture.value = res.data.data
-    } else {
-      message.error('获取图片详情失败：' + res.data.message)
+      return
+    }
+    if (res.data.code === 200) {
+      message.error('获取图片详情失败：未返回图片数据')
     }
   } catch (e: any) {
-    message.error('获取图片详情失败：' + e.message)
+    console.error('获取图片详情失败', e)
   }
 }
 
@@ -283,12 +285,14 @@ const doDelete = async () => {
       return
     }
     await router.push('/')
-  } else {
-    message.error('删除失败')
   }
 }
 
-const doDownload = () => {
+const doDownload = async () => {
+  if (!picture.value.url) {
+    message.error('图片地址无效')
+    return
+  }
   downloadImage(picture.value.url)
 }
 
@@ -310,8 +314,11 @@ const doShare = async () => {
   const res = await createPictureShareUsingPost({
     pictureId: picture.value.id,
   })
-  if (res.data.code !== 200 || !res.data.data?.sharePath) {
-    message.error(res.data.message ?? '生成分享链接失败')
+  if (res.data.code !== 200) {
+    return
+  }
+  if (!res.data.data?.sharePath) {
+    message.error('生成分享链接失败：未返回分享链接')
     return
   }
   shareLink.value = `${window.location.protocol}//${window.location.host}${res.data.data.sharePath}`
@@ -386,7 +393,6 @@ const fetchCommentList = async (current = 1) => {
       syncCommentUiState()
       return
     }
-    message.error(res.data.message ?? '获取评论失败')
   } finally {
     commentLoading.value = false
   }
@@ -522,7 +528,6 @@ const submitRootComment = async () => {
       content: safeContent,
     })
     if (res.data.code !== 200) {
-      message.error(res.data.message ?? '发表评论失败')
       return
     }
     rootCommentContent.value = ''
@@ -577,7 +582,6 @@ const submitReplyComment = async (payload: {
       replyUserId: payload.replyUserId,
     })
     if (res.data.code !== 200) {
-      message.error(res.data.message ?? '回复失败')
       return
     }
     const parentId = toIdString(payload.parentId)
@@ -644,7 +648,6 @@ const submitEditComment = async (payload: { id: number | string; content: string
       content: safeContent,
     })
     if (res.data.code !== 200) {
-      message.error(res.data.message ?? '编辑评论失败')
       return
     }
     message.success('编辑评论成功')
@@ -661,7 +664,6 @@ const deleteComment = async (commentId?: number | string) => {
   }
   const res = await deletePictureCommentUsingPost({ id: commentId })
   if (res.data.code !== 200) {
-    message.error(res.data.message ?? '删除评论失败')
     return
   }
   message.success('删除评论成功')

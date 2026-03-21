@@ -122,6 +122,21 @@ export async function listPictureVoByPageUsingPost(
   })
 }
 
+/** consumeDownloadScore POST /api/picture/download */
+export async function consumeDownloadScoreUsingPost(
+  body: API.PictureDownloadRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/picture/download', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** listMyPictureVOByPage POST /api/picture/my/list/page/vo */
 export async function listMyPictureVoByPageUsingPost(
   body: API.PictureQueryRequest,

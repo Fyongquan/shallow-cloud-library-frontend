@@ -1,6 +1,12 @@
 <template>
   <div id="userProfilePage">
     <a-card title="个人中心" :bordered="false">
+      <a-card size="small" style="margin-bottom: 16px">
+        <a-space style="width: 100%; justify-content: space-between">
+          <span>当前积分：{{ loginUserStore.loginUser.userScore ?? 0 }}</span>
+          <a-button type="primary" @click="goVipMall">进入会员商城</a-button>
+        </a-space>
+      </a-card>
       <a-tabs v-model:activeKey="activeTab">
         <a-tab-pane key="profile" tab="资料设置">
           <a-alert
@@ -206,6 +212,11 @@ import { listMyPictureVoByPageUsingPost } from '@/api/pictureController'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+const goVipMall = () => {
+  router.push('/user_exchange_vip')
+}
+
 const activeTab = ref('profile')
 const profileLoading = ref(false)
 const passwordLoading = ref(false)

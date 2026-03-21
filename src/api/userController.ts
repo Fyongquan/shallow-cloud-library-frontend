@@ -135,6 +135,52 @@ export async function userRegisterUsingPost(
   })
 }
 
+/** exchangeVipByScore POST /api/user/exchange/vip/score */
+export async function exchangeVipByScoreUsingPost(
+  body: API.VipScoreExchangeRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/user/exchange/vip/score', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** listVipPackage GET /api/user/vip/package/list */
+export async function listVipPackageUsingGet(options?: { [key: string]: any }) {
+  return request<API.BaseResponseListVipPackageVO_>('/api/user/vip/package/list', {
+    method: 'GET',
+    ...(options || {}),
+  })
+}
+
+/** getMyScoreInfo GET /api/user/score/info */
+export async function getMyScoreInfoUsingGet(options?: { [key: string]: any }) {
+  return request<API.BaseResponseUserScoreInfoVO_>('/api/user/score/info', {
+    method: 'GET',
+    ...(options || {}),
+  })
+}
+
+/** listMyScoreRecordByPage POST /api/user/score/record/page */
+export async function listMyScoreRecordByPageUsingPost(
+  body: API.UserScoreRecordQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePageUserScoreRecordVO_>('/api/user/score/record/page', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** uploadUserAvatar POST /api/user/avatar/upload */
 export async function uploadUserAvatarUsingPost(file?: File, options?: { [key: string]: any }) {
   const formData = new FormData()

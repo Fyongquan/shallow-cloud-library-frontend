@@ -10,12 +10,7 @@
         </router-link>
       </a-col>
       <a-col flex="auto">
-        <a-menu
-          v-model:selectedKeys="current"
-          mode="horizontal"
-          :items="items"
-          @click="doMenuClick"
-        />
+        <a-menu v-model:selectedKeys="current" mode="horizontal" :items="items" @click="doMenuClick" />
       </a-col>
       <a-col flex="220px">
         <div class="user-login-status">
@@ -51,6 +46,12 @@
                     </router-link>
                   </a-menu-item>
                   <a-menu-item>
+                    <router-link to="/user_exchange_vip">
+                      <CrownOutlined />
+                      会员商城
+                    </router-link>
+                  </a-menu-item>
+                  <a-menu-item>
                     <router-link to="/my_space">
                       <UserOutlined />
                       我的空间
@@ -75,7 +76,14 @@
 
 <script lang="ts" setup>
 import { computed, h, onUnmounted, ref, watch } from 'vue'
-import { BellOutlined, HomeOutlined, LogoutOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons-vue'
+import {
+  BellOutlined,
+  CrownOutlined,
+  HomeOutlined,
+  LogoutOutlined,
+  RobotOutlined,
+  UserOutlined,
+} from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import type { MenuProps } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
@@ -166,7 +174,7 @@ const fetchUnreadCount = async () => {
       return
     }
     unreadCount.value = 0
-  } catch (error) {
+  } catch {
     unreadCount.value = 0
   }
 }

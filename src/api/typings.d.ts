@@ -89,6 +89,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseListVipPackageVO_ = {
+    code?: number
+    data?: VipPackageVO[]
+    message?: string
+  }
+
   type BaseResponseLoginUserVO_ = {
     code?: number
     data?: LoginUserVO
@@ -128,6 +134,12 @@ declare namespace API {
   type BaseResponsePageUserVO_ = {
     code?: number
     data?: PageUserVO_
+    message?: string
+  }
+
+  type BaseResponsePageUserScoreRecordVO_ = {
+    code?: number
+    data?: PageUserScoreRecordVO_
     message?: string
   }
 
@@ -194,6 +206,12 @@ declare namespace API {
   type BaseResponseUserVO_ = {
     code?: number
     data?: UserVO
+    message?: string
+  }
+
+  type BaseResponseUserScoreInfoVO_ = {
+    code?: number
+    data?: UserScoreInfoVO
     message?: string
   }
 
@@ -280,6 +298,8 @@ declare namespace API {
     userName?: string
     userProfile?: string
     userRole?: string
+    vipExpireTime?: string
+    userScore?: number
   }
 
   type Output = {
@@ -351,6 +371,14 @@ declare namespace API {
     total?: number
   }
 
+  type PageUserScoreRecordVO_ = {
+    current?: number
+    pages?: number
+    records?: UserScoreRecordVO[]
+    size?: number
+    total?: number
+  }
+
   type Parameters = {
     addWatermark?: boolean
     angle?: number
@@ -407,6 +435,10 @@ declare namespace API {
     name?: string
     publishToPublic?: boolean
     tags?: string[]
+  }
+
+  type PictureDownloadRequest = {
+    pictureId?: number
   }
 
   type PictureQueryRequest = {
@@ -754,6 +786,7 @@ declare namespace API {
     userPassword?: string
     userProfile?: string
     userRole?: string
+    userScore?: number
     vipCode?: string
     vipExpireTime?: string
     vipNumber?: number
@@ -810,6 +843,29 @@ declare namespace API {
     userRole?: string
   }
 
+  type UserScoreInfoVO = {
+    userId?: number
+    userRole?: string
+    userScore?: number
+    vipExpireTime?: string
+  }
+
+  type UserScoreRecordVO = {
+    createTime?: string
+    description?: string
+    id?: number
+    scoreAfter?: number
+    scoreChange?: number
+  }
+
+  type UserScoreRecordQueryRequest = {
+    bizType?: string
+    current?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+  }
+
   type UserVO = {
     createTime?: string
     id?: number
@@ -818,6 +874,7 @@ declare namespace API {
     userName?: string
     userProfile?: string
     userRole?: string
+    userScore?: number
     vipCode?: string
     vipExpireTime?: string
     vipNumber?: number
@@ -825,5 +882,17 @@ declare namespace API {
 
   type VipExchangeRequest = {
     vipCode?: string
+  }
+
+  type VipScoreExchangeRequest = {
+    packageType?: string
+  }
+
+  type VipPackageVO = {
+    description?: string
+    monthCount?: number
+    packageName?: string
+    packageType?: string
+    scoreCost?: number
   }
 }

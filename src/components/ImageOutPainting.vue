@@ -1,11 +1,17 @@
 <template>
   <a-modal
     class="image-out-painting"
-    v-model:visible="visible"
+    v-model:open="visible"
     title="AI 扩图"
     :footer="false"
     @cancel="closeModal"
   >
+    <a-alert
+      type="info"
+      show-icon
+      style="margin-bottom: 12px"
+      message="使用规则：会员可免费使用 AI 扩图，非会员每次消耗 20 积分。"
+    />
     <a-row :gutter="16">
       <a-col :span="12">
         <h4>原始图片</h4>
@@ -36,6 +42,7 @@ import {
   uploadPictureByUrlUsingPost,
 } from '@/api/pictureController.ts'
 import { toIdString } from '@/utils/id'
+import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 
 interface Props {
   picture?: API.PictureVO
@@ -44,13 +51,53 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const loginUserStore = useLoginUserStore()
 
 const visible = ref(false)
 const resultImageUrl = ref('')
 const taskId = ref<string>()
 const uploadLoading = ref(false)
+const AI_OUT_PAINTING_COST = 20
+const DEFAULT_OUT_PAINTING_OFFSET = 256
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null
+
+const getTaskId = (data?: API.CreateOutPaintingTaskResponse) => {
+  const output = data?.output as any
+  return output?.taskId || output?.task_id
+}
+
+const isVipActive = () => {
+  const loginUser = loginUserStore.loginUser
+  if (!loginUser?.id) {
+    return false
+  }
+  if (loginUser.userRole === 'admin') {
+    return true
+  }
+  if (loginUser.userRole !== 'vip') {
+    return false
+  }
+  if (!loginUser.vipExpireTime) {
+    return false
+  }
+  return new Date(loginUser.vipExpireTime).getTime() > Date.now()
+}
+
+const ensureCanUseAiOutPainting = async () => {
+  await loginUserStore.fetchLoginUser()
+  if (isVipActive()) {
+    return true
+  }
+  const currentScore = Number(loginUserStore.loginUser.userScore ?? 0)
+  if (currentScore >= AI_OUT_PAINTING_COST) {
+    return true
+  }
+  message.error(
+    `积分不足：AI 扩图需 ${AI_OUT_PAINTING_COST} 积分，当前积分 ${currentScore}，请先获取积分或开通会员`,
+  )
+  return false
+}
 
 const createTask = async () => {
   const pictureId = toIdString(props.picture?.id)
@@ -58,24 +105,32 @@ const createTask = async () => {
     message.warning('请先选择要扩图的图片')
     return
   }
+  const canUse = await ensureCanUseAiOutPainting()
+  if (!canUse) {
+    return
+  }
   try {
     const res = await createPictureOutPaintingTaskUsingPost({
       pictureId: pictureId as any,
       parameters: {
-        xScale: 2,
-        yScale: 2,
+        topOffset: DEFAULT_OUT_PAINTING_OFFSET,
+        bottomOffset: DEFAULT_OUT_PAINTING_OFFSET,
+        leftOffset: DEFAULT_OUT_PAINTING_OFFSET,
+        rightOffset: DEFAULT_OUT_PAINTING_OFFSET,
       },
     })
-    const currentTaskId = res.data.data?.output?.taskId
+    const currentTaskId = getTaskId(res.data.data)
     if (res.data.code === 200 && currentTaskId) {
       message.success('创建扩图任务成功，请耐心等待')
       taskId.value = currentTaskId
       startPolling(currentTaskId)
       return
     }
-    message.error('创建扩图任务失败：' + (res.data.message || '未获取到任务编号'))
+    if (res.data.code === 200) {
+      message.error('\u521b\u5efa\u6269\u56fe\u4efb\u52a1\u5931\u8d25\uff1a\u672a\u83b7\u53d6\u5230\u4efb\u52a1\u7f16\u53f7')
+    }
   } catch (error: any) {
-    message.error('创建扩图任务失败：' + (error?.message || '未知错误'))
+    console.error('\u521b\u5efa\u6269\u56fe\u4efb\u52a1\u5931\u8d25', error)
   }
 }
 
@@ -87,25 +142,26 @@ const startPolling = (currentTaskId: string) => {
       const res = await getPictureOutPaintingTaskUsingGet({
         taskId: currentTaskId,
       })
-      const taskResult = res.data.data?.output
+      const taskResult = res.data.data?.output as any
       if (res.data.code !== 200 || !taskResult) {
         return
       }
-      if (taskResult.taskStatus === 'SUCCEEDED') {
-        resultImageUrl.value = taskResult.outputImageUrl ?? ''
+      const taskStatus = taskResult.taskStatus || taskResult.task_status
+      if (taskStatus === 'SUCCEEDED') {
+        resultImageUrl.value = taskResult.outputImageUrl || taskResult.output_image_url || ''
         if (resultImageUrl.value) {
           message.success('扩图任务执行成功')
         } else {
           message.warning('扩图任务已完成，但未返回结果图片')
         }
         clearPolling()
-      } else if (taskResult.taskStatus === 'FAILED') {
-        message.error('扩图任务执行失败')
+      } else if (taskStatus === 'FAILED') {
+        const failReason = taskResult.message ? `?${taskResult.message}` : ''
+        message.error(`????????${failReason}`)
         clearPolling()
       }
     } catch (error: any) {
       console.error('扩图任务轮询失败', error)
-      message.error('扩图任务轮询失败：' + (error?.message || '未知错误'))
       clearPolling()
     }
   }, 3000)
@@ -144,16 +200,18 @@ const handleUpload = async () => {
       props.onSuccess?.(res.data.data)
       closeModal()
     } else {
-      message.error('图片上传失败：' + res.data.message)
+      if (res.data.code === 200) {
+        message.error('\u56fe\u7247\u4e0a\u4f20\u5931\u8d25\uff1a\u672a\u8fd4\u56de\u56fe\u7247\u6570\u636e')
+      }
     }
   } catch (error: any) {
-    console.error('图片上传失败', error)
-    message.error('图片上传失败：' + (error?.message || '未知错误'))
+    console.error('\u56fe\u7247\u4e0a\u4f20\u5931\u8d25', error)
   }
   uploadLoading.value = false
 }
 
 const openModal = () => {
+  loginUserStore.fetchLoginUser()
   visible.value = true
 }
 
