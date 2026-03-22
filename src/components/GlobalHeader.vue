@@ -89,7 +89,6 @@ import type { MenuProps } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { userLogoutUsingPost } from '@/api/userController.ts'
-import { countUnreadMessageUsingGet } from '@/api/messageController.ts'
 
 const loginUserStore = useLoginUserStore()
 
@@ -145,7 +144,8 @@ const doMenuClick = ({ key }: { key: string }) => {
 }
 
 const unreadCount = ref(0)
-let unreadTimer: ReturnType<typeof setInterval> | null = null
+let unreadEventSource: EventSource | null = null
+let unreadCountTimer: number | null = null
 
 const normalizeUnreadCount = (value: unknown) => {
   const count = Number(value)
@@ -155,10 +155,38 @@ const normalizeUnreadCount = (value: unknown) => {
   return Math.floor(count)
 }
 
-const stopUnreadPolling = () => {
-  if (unreadTimer) {
-    clearInterval(unreadTimer)
-    unreadTimer = null
+const parseUnreadCount = (raw: unknown) => {
+  if (typeof raw === 'string') {
+    const text = raw.trim()
+    if (!text) {
+      return 0
+    }
+    try {
+      const parsed = JSON.parse(text)
+      if (parsed && typeof parsed === 'object') {
+        const maybeObject = parsed as Record<string, unknown>
+        if ('count' in maybeObject) {
+          return normalizeUnreadCount(maybeObject.count)
+        }
+        if ('unreadCount' in maybeObject) {
+          return normalizeUnreadCount(maybeObject.unreadCount)
+        }
+        if ('data' in maybeObject) {
+          return normalizeUnreadCount(maybeObject.data)
+        }
+      }
+      return normalizeUnreadCount(parsed)
+    } catch {
+      return normalizeUnreadCount(text)
+    }
+  }
+  return normalizeUnreadCount(raw)
+}
+
+const stopUnreadStream = () => {
+  if (unreadEventSource) {
+    unreadEventSource.close()
+    unreadEventSource = null
   }
 }
 
@@ -168,30 +196,74 @@ const fetchUnreadCount = async () => {
     return
   }
   try {
-    const res = await countUnreadMessageUsingGet()
-    if (res.data.code === 200) {
-      unreadCount.value = normalizeUnreadCount(res.data.data)
+    const response = await window.fetch('/api/message/unread/count', {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (!response.ok) {
       return
     }
-    unreadCount.value = 0
+    const data = await response.json()
+    if (data?.code === 200) {
+      unreadCount.value = normalizeUnreadCount(data.data)
+    }
   } catch {
-    unreadCount.value = 0
+    // 忽略轮询错误，避免重复弹窗；SSE 或下一次轮询会继续同步
   }
 }
 
-const startUnreadPolling = () => {
-  stopUnreadPolling()
-  fetchUnreadCount()
-  unreadTimer = setInterval(fetchUnreadCount, 20000)
+const stopUnreadCountPolling = () => {
+  if (unreadCountTimer !== null) {
+    window.clearInterval(unreadCountTimer)
+    unreadCountTimer = null
+  }
+}
+
+const startUnreadCountPolling = () => {
+  stopUnreadCountPolling()
+  void fetchUnreadCount()
+  unreadCountTimer = window.setInterval(() => {
+    void fetchUnreadCount()
+  }, 15000)
+}
+
+const startUnreadStream = () => {
+  stopUnreadStream()
+  if (!loginUserStore.loginUser.id) {
+    unreadCount.value = 0
+    return
+  }
+
+  const eventSource = new EventSource('/api/message/unread/sse', { withCredentials: true })
+  unreadEventSource = eventSource
+
+  eventSource.addEventListener('count', (event: MessageEvent) => {
+    const nextCount = parseUnreadCount(event.data)
+    if (nextCount === 0 && unreadCount.value > 0) {
+      // 避免 SSE 异常数据把红点瞬间清零，交给接口再次确认
+      void fetchUnreadCount()
+      return
+    }
+    unreadCount.value = nextCount
+  })
+
+  eventSource.onerror = () => {
+    // EventSource 会自动重连；仅在 CLOSED 时清理实例
+    if (eventSource.readyState === EventSource.CLOSED) {
+      stopUnreadStream()
+    }
+  }
 }
 
 watch(
   () => loginUserStore.loginUser.id,
   (id) => {
     if (id) {
-      startUnreadPolling()
+      startUnreadCountPolling()
+      startUnreadStream()
     } else {
-      stopUnreadPolling()
+      stopUnreadStream()
+      stopUnreadCountPolling()
       unreadCount.value = 0
     }
   },
@@ -210,7 +282,8 @@ const doLogout = async () => {
       userName: '未登录',
     })
     unreadCount.value = 0
-    stopUnreadPolling()
+    stopUnreadStream()
+    stopUnreadCountPolling()
     message.success('退出登录成功')
     await router.push('/user/login')
   } else {
@@ -219,7 +292,8 @@ const doLogout = async () => {
 }
 
 onUnmounted(() => {
-  stopUnreadPolling()
+  stopUnreadStream()
+  stopUnreadCountPolling()
 })
 </script>
 
