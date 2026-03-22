@@ -103,12 +103,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { DeleteOutlined, EditOutlined, PushpinOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import {
   deleteAiChatSessionUsingPost,
-  doAiChatUsingPost,
   getAllUserChatHisUsingPost,
   getChatHisVoPageUsingPost,
   getNewChatIdUsingPost,
@@ -133,6 +132,7 @@ const renameModalOpen = ref(false)
 const renameLoading = ref(false)
 const renameTitle = ref('')
 const renameTargetChatId = ref('')
+let activeEventSource: EventSource | null = null
 
 const activeSessionTitle = computed(() => {
   const current = sessionList.value.find((item) => item.chatId === activeChatId.value)
@@ -140,6 +140,67 @@ const activeSessionTitle = computed(() => {
 })
 
 const isSuccessCode = (code?: number) => code === 200
+
+const closeActiveStream = () => {
+  if (activeEventSource) {
+    activeEventSource.close()
+    activeEventSource = null
+  }
+}
+
+const streamChatReply = (chatId: string, content: string) => {
+  return new Promise<void>((resolve, reject) => {
+    closeActiveStream()
+    const params = new URLSearchParams({
+      chatId,
+      chatType: CHAT_TYPE,
+      userMessage: content,
+    })
+    const sseUrl = `/api/userAIChat/chat/sse?${params.toString()}`
+    const eventSource = new EventSource(sseUrl)
+    activeEventSource = eventSource
+
+    let completed = false
+    const assistantMessage: AiChatMessageVO = {
+      chatId,
+      chatType: CHAT_TYPE,
+      roleType: 'ASSISTANT',
+      content: '',
+      createTime: new Date().toISOString(),
+    }
+    messageList.value.push(assistantMessage)
+
+    eventSource.addEventListener('message', (event: MessageEvent) => {
+      const delta = `${event.data ?? ''}`
+      assistantMessage.content = `${assistantMessage.content ?? ''}${delta}`
+      scrollToBottom()
+    })
+
+    eventSource.addEventListener('done', () => {
+      completed = true
+      closeActiveStream()
+      resolve()
+    })
+
+    eventSource.addEventListener('business-error', (event: MessageEvent) => {
+      completed = true
+      closeActiveStream()
+      const errorMsg = `${event.data ?? 'AI 流式回复失败'}`.trim()
+      assistantMessage.content = assistantMessage.content || `[错误] ${errorMsg}`
+      reject(new Error(errorMsg))
+    })
+
+    eventSource.onerror = () => {
+      if (completed) {
+        return
+      }
+      closeActiveStream()
+      const errorMsg = 'AI 流式连接中断'
+      assistantMessage.content = assistantMessage.content || `[错误] ${errorMsg}`
+      reject(new Error(errorMsg))
+    }
+  })
+}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -204,6 +265,7 @@ const switchSession = async (chatId?: string) => {
   if (!id || id === activeChatId.value) {
     return
   }
+  closeActiveStream()
   activeChatId.value = id
   await fetchMessages(id)
 }
@@ -347,28 +409,15 @@ const sendMessage = async () => {
 
   sending.value = true
   try {
-    const res = await doAiChatUsingPost({
-      chatId,
-      chatType: CHAT_TYPE,
-      userMessage: content,
-    })
-    if (isSuccessCode(res.data.code)) {
-      const assistantContent = `${res.data.data ?? ''}`.trim()
-      if (assistantContent) {
-        messageList.value.push({
-          chatId,
-          chatType: CHAT_TYPE,
-          roleType: 'ASSISTANT',
-          content: assistantContent,
-          createTime: new Date().toISOString(),
-        })
-        await scrollToBottom()
-      }
-      // Re-sync from backend to avoid UI lag caused by local state drift.
-      await fetchMessages(chatId)
-      await fetchSessions()
-      return
-    }
+    await streamChatReply(chatId, content)
+    await fetchMessages(chatId)
+    await fetchSessions()
+    await scrollToBottom()
+    return
+  } catch (error: any) {
+    message.error(error?.message || 'AI 回复失败')
+    await fetchMessages(chatId)
+    await fetchSessions()
   } finally {
     sending.value = false
   }
@@ -396,6 +445,10 @@ onMounted(async () => {
   if (activeChatId.value) {
     await fetchMessages(activeChatId.value)
   }
+})
+
+onBeforeUnmount(() => {
+  closeActiveStream()
 })
 </script>
 
