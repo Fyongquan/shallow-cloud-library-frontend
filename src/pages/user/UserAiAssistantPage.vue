@@ -17,7 +17,29 @@
                 >
                   <a-list-item-meta>
                     <template #title>
-                      <span>{{ item.title || '新对话' }}</span>
+                      <div class="session-title-row">
+                        <span class="session-title-text">
+                          <PushpinOutlined v-if="item.isPinned === 1" class="session-pin-icon" />
+                          {{ item.title || '新对话' }}
+                        </span>
+                        <div class="session-actions" @click.stop>
+                          <a-tooltip :title="item.isPinned === 1 ? '取消置顶' : '置顶会话'">
+                            <a-button type="text" size="small" @click.stop="togglePinSession(item)">
+                              <PushpinOutlined :style="{ color: item.isPinned === 1 ? '#1677ff' : undefined }" />
+                            </a-button>
+                          </a-tooltip>
+                          <a-tooltip title="重命名会话">
+                            <a-button type="text" size="small" @click.stop="openRenameModal(item)">
+                              <EditOutlined />
+                            </a-button>
+                          </a-tooltip>
+                          <a-tooltip title="删除会话">
+                            <a-button type="text" size="small" danger @click.stop="deleteSession(item)">
+                              <DeleteOutlined />
+                            </a-button>
+                          </a-tooltip>
+                        </div>
+                      </div>
                     </template>
                     <template #description>
                       <div class="session-preview">{{ item.previewContent || '-' }}</div>
@@ -52,7 +74,7 @@
               v-model:value="inputMessage"
               :auto-size="{ minRows: 2, maxRows: 4 }"
               :maxlength="2000"
-              placeholder="请输入你的问题，按 Ctrl+Enter 发送"
+              placeholder="请输入你的问题，按 Enter 发送，Shift+Enter 换行"
               @keydown="onKeydown"
             />
             <div class="input-actions">
@@ -62,17 +84,36 @@
         </a-card>
       </a-col>
     </a-row>
+    <a-modal
+      v-model:open="renameModalOpen"
+      title="重命名会话"
+      ok-text="保存"
+      cancel-text="取消"
+      :confirm-loading="renameLoading"
+      @ok="submitRenameSession"
+    >
+      <a-input
+        v-model:value="renameTitle"
+        :maxlength="40"
+        placeholder="请输入会话标题"
+        @keyup.enter="submitRenameSession"
+      />
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { message } from 'ant-design-vue'
+import { DeleteOutlined, EditOutlined, PushpinOutlined } from '@ant-design/icons-vue'
+import { message, Modal } from 'ant-design-vue'
 import {
+  deleteAiChatSessionUsingPost,
   doAiChatUsingPost,
   getAllUserChatHisUsingPost,
   getChatHisVoPageUsingPost,
   getNewChatIdUsingPost,
+  pinAiChatSessionUsingPost,
+  renameAiChatSessionUsingPost,
   type AiChatMessageVO,
   type AiChatSessionVO,
 } from '@/api/userAiChatController'
@@ -88,11 +129,17 @@ const messageList = ref<AiChatMessageVO[]>([])
 const activeChatId = ref('')
 const inputMessage = ref('')
 const messageContainerRef = ref<HTMLElement>()
+const renameModalOpen = ref(false)
+const renameLoading = ref(false)
+const renameTitle = ref('')
+const renameTargetChatId = ref('')
 
 const activeSessionTitle = computed(() => {
   const current = sessionList.value.find((item) => item.chatId === activeChatId.value)
   return current?.title || 'AI 助手'
 })
+
+const isSuccessCode = (code?: number) => code === 200
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -105,14 +152,22 @@ const scrollToBottom = async () => {
 const fetchSessions = async () => {
   sessionLoading.value = true
   try {
+    const previousActiveId = activeChatId.value
     const res = await getAllUserChatHisUsingPost({
       current: 1,
       pageSize: 30,
       chatType: CHAT_TYPE,
     })
-    if (res.data.code === 200 && res.data.data) {
+    if (isSuccessCode(res.data.code) && res.data.data) {
       sessionList.value = res.data.data.records ?? []
-      if (!activeChatId.value && sessionList.value.length > 0) {
+      if (sessionList.value.length === 0) {
+        activeChatId.value = ''
+      } else if (
+        previousActiveId &&
+        sessionList.value.some((item) => item.chatId === previousActiveId)
+      ) {
+        activeChatId.value = previousActiveId
+      } else {
         activeChatId.value = sessionList.value[0].chatId || ''
       }
       return
@@ -134,7 +189,7 @@ const fetchMessages = async (chatId: string) => {
       current: 1,
       pageSize: 100,
     })
-    if (res.data.code === 200 && res.data.data) {
+    if (isSuccessCode(res.data.code) && res.data.data) {
       messageList.value = res.data.data.records ?? []
       await scrollToBottom()
       return
@@ -153,9 +208,94 @@ const switchSession = async (chatId?: string) => {
   await fetchMessages(id)
 }
 
+const openRenameModal = (session: AiChatSessionVO) => {
+  renameTargetChatId.value = session.chatId || ''
+  renameTitle.value = session.title || ''
+  renameModalOpen.value = true
+}
+
+const submitRenameSession = async () => {
+  const chatId = renameTargetChatId.value
+  const title = renameTitle.value.trim()
+  if (!chatId) {
+    renameModalOpen.value = false
+    return
+  }
+  if (!title) {
+    message.warning('会话标题不能为空')
+    return
+  }
+  if (title.length > 40) {
+    message.warning('会话标题不能超过 40 字')
+    return
+  }
+
+  renameLoading.value = true
+  try {
+    const res = await renameAiChatSessionUsingPost({ chatId, title })
+    if (res.data.code === 200) {
+      sessionList.value = sessionList.value.map((item) =>
+        item.chatId === chatId ? { ...item, title } : item,
+      )
+      renameModalOpen.value = false
+      message.success('会话已重命名')
+    }
+  } finally {
+    renameLoading.value = false
+  }
+}
+
+const togglePinSession = async (session: AiChatSessionVO) => {
+  const chatId = session.chatId || ''
+  if (!chatId) {
+    return
+  }
+  const nextPinned = session.isPinned === 1 ? 0 : 1
+  const res = await pinAiChatSessionUsingPost({
+    chatId,
+    isPinned: nextPinned,
+  })
+  if (res.data.code === 200) {
+    await fetchSessions()
+    message.success(nextPinned === 1 ? '会话已置顶' : '已取消置顶')
+  }
+}
+
+const deleteSession = async (session: AiChatSessionVO) => {
+  const chatId = session.chatId || ''
+  if (!chatId) {
+    return
+  }
+
+  Modal.confirm({
+    title: '确认删除该会话？',
+    content: '删除后该会话的历史消息将一并删除，且不可恢复。',
+    okText: '删除',
+    cancelText: '取消',
+    okButtonProps: {
+      danger: true,
+    },
+    async onOk() {
+      const res = await deleteAiChatSessionUsingPost({ chatId })
+      if (res.data.code !== 200) {
+        return
+      }
+      if (activeChatId.value === chatId) {
+        activeChatId.value = ''
+        messageList.value = []
+      }
+      await fetchSessions()
+      if (activeChatId.value) {
+        await fetchMessages(activeChatId.value)
+      }
+      message.success('会话已删除')
+    },
+  })
+}
+
 const createNewSession = async (showTip = true) => {
   const res = await getNewChatIdUsingPost({ chatType: CHAT_TYPE })
-  if (res.data.code !== 200 || !res.data.data) {
+  if (!isSuccessCode(res.data.code) || !res.data.data) {
     return ''
   }
   const chatId = res.data.data
@@ -212,7 +352,7 @@ const sendMessage = async () => {
       chatType: CHAT_TYPE,
       userMessage: content,
     })
-    if (res.data.code === 200) {
+    if (isSuccessCode(res.data.code)) {
       const assistantContent = `${res.data.data ?? ''}`.trim()
       if (assistantContent) {
         messageList.value.push({
@@ -235,7 +375,7 @@ const sendMessage = async () => {
 }
 
 const onKeydown = (e: KeyboardEvent) => {
-  if (e.ctrlKey && e.key === 'Enter') {
+  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     sendMessage()
   }
@@ -289,6 +429,38 @@ onMounted(async () => {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.session-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.session-title-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.session-pin-icon {
+  color: #1677ff;
+}
+
+.session-actions {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.session-item:hover .session-actions,
+.session-item.active .session-actions {
+  opacity: 1;
 }
 
 .message-container {

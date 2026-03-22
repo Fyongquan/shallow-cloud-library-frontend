@@ -19,6 +19,7 @@ export interface AiChatSessionVO {
   title?: string
   previewContent?: string
   lastChatTime?: string
+  isPinned?: number
 }
 
 export interface AiChatMessageVO {
@@ -46,6 +47,20 @@ export interface AiChatRequest {
   chatId: string
   chatType?: string
   userMessage: string
+}
+
+export interface AiChatSessionDeleteRequest {
+  chatId: string
+}
+
+export interface AiChatSessionRenameRequest {
+  chatId: string
+  title: string
+}
+
+export interface AiChatSessionPinRequest {
+  chatId: string
+  isPinned: number
 }
 
 export async function getNewChatIdUsingPost(
@@ -92,6 +107,48 @@ export async function getChatHisVoPageUsingPost(
   options?: Record<string, any>,
 ) {
   return request<BaseResponse<PageResult<AiChatMessageVO>>>('/api/userAIChat/getChatHisVoPage', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+export async function renameAiChatSessionUsingPost(
+  body: AiChatSessionRenameRequest,
+  options?: Record<string, any>,
+) {
+  return request<BaseResponse<boolean>>('/api/userAIChat/session/rename', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+export async function pinAiChatSessionUsingPost(
+  body: AiChatSessionPinRequest,
+  options?: Record<string, any>,
+) {
+  return request<BaseResponse<boolean>>('/api/userAIChat/session/pin', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+export async function deleteAiChatSessionUsingPost(
+  body: AiChatSessionDeleteRequest,
+  options?: Record<string, any>,
+) {
+  return request<BaseResponse<boolean>>('/api/userAIChat/session/delete', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
