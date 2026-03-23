@@ -18,6 +18,7 @@ import SpaceUserManagePage from '@/pages/admin/SpaceUserManagePage.vue'
 import UserExchangeVipPage from '@/pages/UserExchangeVipPage.vue'
 import UserMessagePage from '@/pages/user/UserMessagePage.vue'
 import UserAiAssistantPage from '@/pages/user/UserAiAssistantPage.vue'
+import MyFavorPage from '@/pages/MyFavorPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -119,6 +120,14 @@ const router = createRouter({
       path: '/my_space',
       name: '我的空间',
       component: MySpacePage,
+      meta: {
+        requireLogin: true,
+      },
+    },
+    {
+      path: '/my_favor',
+      name: '我的收藏',
+      component: MyFavorPage,
       meta: {
         requireLogin: true,
       },

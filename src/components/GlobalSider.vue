@@ -21,6 +21,7 @@ import { computed, h, onBeforeUnmount, onMounted, ref, watch, watchEffect } from
 import {
   BellOutlined,
   CrownOutlined,
+  HeartOutlined,
   PictureOutlined,
   RobotOutlined,
   TeamOutlined,
@@ -51,6 +52,11 @@ const fixedMenuItems = [
     key: '/my_space',
     icon: () => h(UserOutlined),
     label: '我的空间',
+  },
+  {
+    key: '/my_favor',
+    icon: () => h(HeartOutlined),
+    label: '我的收藏',
   },
   {
     key: '/user/messages',
