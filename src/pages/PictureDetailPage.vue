@@ -141,6 +141,7 @@
             :replying-comment-id="replyingCommentId"
             :replying-content="replyingContent"
             :submitting-reply="replySubmitting"
+            :thumbing-comment-id="thumbingCommentId"
             :expanded-ids="expandedCommentIds"
             @reply-start="openReply"
             @reply-cancel="cancelReply"
@@ -152,6 +153,7 @@
             @edit-content-change="onEditContentChange"
             @edit-submit="submitEditComment"
             @delete="onDeleteComment"
+            @thumb-toggle="onToggleCommentThumb"
           />
         </div>
       </a-spin>
@@ -180,6 +182,7 @@ import {
 import {
   addPictureCommentUsingPost,
   deletePictureCommentUsingPost,
+  doPictureCommentThumbUsingPost,
   doPictureFavorUsingPost,
   doThumbUsingPost,
   editPictureCommentUsingPost,
@@ -187,6 +190,7 @@ import {
   listPictureCommentVoByPageUsingPost,
   type PictureCommentVO,
   type PictureInteractStatus,
+  undoPictureCommentThumbUsingPost,
   undoPictureFavorUsingPost,
   undoThumbUsingPost,
 } from '@/api/pictureInteractController.ts'
@@ -356,6 +360,7 @@ const expandedCommentIds = ref<Array<number | string>>([])
 const editingCommentId = ref<number | string>()
 const editingCommentContent = ref('')
 const commentEditing = ref(false)
+const thumbingCommentId = ref<number | string>()
 
 const fetchInteractStatus = async () => {
   if (!picture.value.id) {
@@ -674,6 +679,33 @@ const deleteComment = async (commentId?: number | string) => {
 
 const onDeleteComment = async (comment: PictureCommentVO) => {
   await deleteComment(comment.id)
+}
+
+const onToggleCommentThumb = async (comment: PictureCommentVO) => {
+  const commentId = toIdString(comment.id)
+  if (!commentId || thumbingCommentId.value) {
+    return
+  }
+  thumbingCommentId.value = commentId
+  try {
+    if (comment.thumbed) {
+      const res = await undoPictureCommentThumbUsingPost({ commentId })
+      if (res.data.code !== 200) {
+        return
+      }
+      comment.thumbed = false
+      comment.thumbCount = Math.max(0, (comment.thumbCount ?? 0) - 1)
+      return
+    }
+    const res = await doPictureCommentThumbUsingPost({ commentId })
+    if (res.data.code !== 200) {
+      return
+    }
+    comment.thumbed = true
+    comment.thumbCount = (comment.thumbCount ?? 0) + 1
+  } finally {
+    thumbingCommentId.value = undefined
+  }
 }
 
 const onCommentPageChange = (page: number) => {

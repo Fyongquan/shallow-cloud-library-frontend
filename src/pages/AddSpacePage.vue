@@ -115,10 +115,7 @@ const handleSubmit = async (values: any) => {
     }
     // 非 200 业务错误由 request.ts 统一提示，避免重复弹窗
   } catch (error: any) {
-    // HTTP 异常也由 request.ts 统一提示，这里只兜底未知错误
-    if (!error?.response?.data?.message) {
-      message.error('请求失败，请稍后重试')
-    }
+    console.error('创建空间失败', error)
   } finally {
     loading.value = false
   }

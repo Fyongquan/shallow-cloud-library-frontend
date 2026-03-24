@@ -110,6 +110,7 @@ import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { formatSize } from '@/utils'
 import { SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '@/constants/space'
 import { toIdString } from '@/utils/id'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
 
 interface Props {
   id: string | number
@@ -117,6 +118,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+const loginUserStore = useLoginUserStore()
 const id = computed(() => toIdString(props.id) ?? '')
 const space = ref<API.SpaceVO>({})
 const dataList = ref<API.PictureVO[]>([])
@@ -155,7 +157,7 @@ const fetchSpaceDetail = async () => {
       message.error('加载空间详情失败：' + res.data.message)
     }
   } catch (e: any) {
-    message.error('加载空间详情失败：' + e.message)
+    console.error('加载空间详情失败', e)
   }
 }
 
@@ -244,14 +246,30 @@ const onTextGenerateSuccess = () => {
   fetchData()
 }
 
-onMounted(() => {
+const ensurePageLogin = async () => {
+  await loginUserStore.fetchLoginUser()
+  if (loginUserStore.loginUser?.id) {
+    return true
+  }
+  message.warning('\u8bf7\u5148\u767b\u5f55')
+  await router.replace(`/user/login?redirect=${encodeURIComponent(router.currentRoute.value.fullPath)}`)
+  return false
+}
+
+onMounted(async () => {
+  if (!(await ensurePageLogin())) {
+    return
+  }
   fetchSpaceDetail()
   fetchData()
 })
 
 watch(
   () => props.id,
-  () => {
+  async () => {
+    if (!(await ensurePageLogin())) {
+      return
+    }
     fetchSpaceDetail()
     fetchData()
   },

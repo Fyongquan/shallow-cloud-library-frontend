@@ -49,6 +49,19 @@
             </template>
           </a-button>
           <a-button
+            shape="circle"
+            size="small"
+            class="action-icon"
+            :loading="isThumbingCurrent"
+            @click="emit('thumb-toggle', comment)"
+          >
+            <template #icon>
+              <LikeFilled v-if="comment.thumbed" />
+              <LikeOutlined v-else />
+            </template>
+          </a-button>
+          <span class="comment-thumb-count">{{ comment.thumbCount ?? 0 }}</span>
+          <a-button
             v-if="canEditComment(comment) && !isEditingCurrent"
             shape="circle"
             size="small"
@@ -100,6 +113,7 @@
             :replying-comment-id="replyingCommentId"
             :replying-content="replyingContent"
             :submitting-reply="submittingReply"
+            :thumbing-comment-id="thumbingCommentId"
             :expanded-ids="expandedIds"
             @reply-start="emit('reply-start', $event)"
             @reply-cancel="emit('reply-cancel')"
@@ -111,6 +125,7 @@
             @edit-content-change="emit('edit-content-change', $event)"
             @edit-submit="emit('edit-submit', $event)"
             @delete="emit('delete', $event)"
+            @thumb-toggle="emit('thumb-toggle', $event)"
           />
         </div>
       </div>
@@ -120,7 +135,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { DeleteOutlined, EditOutlined, MessageOutlined } from '@ant-design/icons-vue'
+import { DeleteOutlined, EditOutlined, LikeFilled, LikeOutlined, MessageOutlined } from '@ant-design/icons-vue'
 import { isSameId, toIdString } from '@/utils/id'
 import type { PictureCommentVO } from '@/api/pictureInteractController'
 
@@ -135,6 +150,7 @@ interface Props {
   replyingCommentId?: number | string
   replyingContent?: string
   submittingReply?: boolean
+  thumbingCommentId?: number | string
   expandedIds?: Array<number | string>
 }
 
@@ -147,6 +163,7 @@ const props = withDefaults(defineProps<Props>(), {
   replyingCommentId: undefined,
   replyingContent: '',
   submittingReply: false,
+  thumbingCommentId: undefined,
   expandedIds: () => [],
 })
 
@@ -161,6 +178,7 @@ const emit = defineEmits<{
   (e: 'edit-content-change', content: string): void
   (e: 'edit-submit', payload: { id: number | string; content: string }): void
   (e: 'delete', comment: PictureCommentVO): void
+  (e: 'thumb-toggle', comment: PictureCommentVO): void
 }>()
 
 const isEditingCurrent = computed(() => {
@@ -175,6 +193,13 @@ const isReplyingCurrent = computed(() => {
     return false
   }
   return isSameId(props.comment.id, props.replyingCommentId)
+})
+
+const isThumbingCurrent = computed(() => {
+  if (!props.comment.id || !props.thumbingCommentId) {
+    return false
+  }
+  return isSameId(props.comment.id, props.thumbingCommentId)
 })
 
 const displayUserName = computed(() => {
@@ -329,6 +354,12 @@ const formatRelativeTime = (value?: string) => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.comment-thumb-count {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+  min-width: 14px;
 }
 
 .toggle-replies {

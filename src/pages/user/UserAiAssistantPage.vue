@@ -415,7 +415,7 @@ const sendMessage = async () => {
     await scrollToBottom()
     return
   } catch (error: any) {
-    message.error(error?.message || 'AI 回复失败')
+    console.error('AI 回复失败', error)
     await fetchMessages(chatId)
     await fetchSessions()
   } finally {

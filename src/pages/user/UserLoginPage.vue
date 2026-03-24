@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div id="userLoginPage">
     <h2 class="title">浅度云图库 - 用户登录</h2>
     <div class="desc">企业级智能协同云图库</div>
@@ -25,14 +25,14 @@
     </a-form>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { reactive } from 'vue'
 import { userLoginUsingPost } from '@/api/userController.ts'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { message } from 'ant-design-vue'
-import router from '@/router' // 用于接受表单输入的值
+import router from '@/router'
 
-// 用于接受表单输入的值
 const formState = reactive<API.UserLoginRequest>({
   userAccount: '',
   userPassword: '',
@@ -40,27 +40,19 @@ const formState = reactive<API.UserLoginRequest>({
 
 const loginUserStore = useLoginUserStore()
 
-/**
- * 提交表单
- * @param values
- */
-const handleSubmit = async (values: any) => {
+const handleSubmit = async (values: API.UserLoginRequest) => {
   try {
     const res = await userLoginUsingPost(values)
-    // 登录成功，把登录态保存到全局状态中
     if (res.data.code === 200 && res.data.data) {
       await loginUserStore.fetchLoginUser()
       message.success('登录成功')
-      router.push({
-        path: '/',
-        replace: true,
-      })
+      await router.replace('/')
       return
     }
-    message.error('登录失败，' + (res.data.message || '请检查账号或密码'))
-  } catch (error: any) {
-    const errorMessage = error?.response?.data?.message || error?.message || '请检查账号或密码'
-    message.error('登录失败，' + errorMessage)
+    // 非 200 业务错误已由全局拦截器统一提示
+  } catch (error) {
+    // HTTP 异常已由全局拦截器统一提示
+    console.error('登录请求失败', error)
   }
 }
 </script>

@@ -71,7 +71,7 @@ const fetchPictureDetail = async () => {
       message.error('获取图片详情失败，' + res.data.message)
     }
   } catch (e: any) {
-    message.error('获取图片详情失败：' + e.message)
+    console.error('获取图片详情失败', e)
   }
 }
 
@@ -99,7 +99,7 @@ const fetchResultData = async () => {
       message.error('获取数据失败，' + res.data.message)
     }
   } catch (e: any) {
-    message.error('获取数据失败，' + e.message)
+    console.error('获取相似图失败', e)
   }
   loading.value = false
 }

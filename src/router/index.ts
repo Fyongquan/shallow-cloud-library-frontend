@@ -1,4 +1,5 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
+import { message } from 'ant-design-vue'
 import HomePage from '@/pages/HomePage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserProfileCenterPage from '@/pages/user/UserProfileCenterPage.vue'
@@ -19,6 +20,8 @@ import UserExchangeVipPage from '@/pages/UserExchangeVipPage.vue'
 import UserMessagePage from '@/pages/user/UserMessagePage.vue'
 import UserAiAssistantPage from '@/pages/user/UserAiAssistantPage.vue'
 import MyFavorPage from '@/pages/MyFavorPage.vue'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
+import { getLoginUserUsingGet } from '@/api/userController'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -66,16 +69,25 @@ const router = createRouter({
       path: '/admin/userManage',
       name: '用户管理',
       component: UserManagePage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/admin/pictureManage',
       name: '图片管理',
       component: PictureManagePage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/admin/spaceManage',
       name: '空间管理',
       component: SpaceManagePage,
+      meta: {
+        requireLogin: true,
+      },
     },
     {
       path: '/spaceUserManage/:id',
@@ -168,6 +180,50 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue'),
     },
   ],
+})
+
+const isAdminPath = (path: string) => path.startsWith('/admin')
+const PUBLIC_PATH_SET = new Set(['/user/login', '/user/register', '/about'])
+
+const fetchLoginUser = async () => {
+  const loginUserStore = useLoginUserStore()
+  try {
+    const res = await getLoginUserUsingGet()
+    if (Number(res.data?.code) === 200 && res.data?.data?.id) {
+      loginUserStore.setLoginUser(res.data.data)
+      return res.data.data
+    }
+  } catch {
+    // ignore and treat as anonymous
+  }
+  loginUserStore.setLoginUser({ userName: '未登录' })
+  return null
+}
+
+router.beforeEach(async (to, _from, next) => {
+  const requireLogin = Boolean(to.meta?.requireLogin) || !PUBLIC_PATH_SET.has(to.path)
+  const loginUser = await fetchLoginUser()
+
+  if (requireLogin && !loginUser?.id) {
+    message.warning('请先登录')
+    next(`/user/login?redirect=${to.fullPath}`)
+    return
+  }
+
+  if (isAdminPath(to.fullPath)) {
+    if (!loginUser?.id) {
+      message.warning('请先登录')
+      next(`/user/login?redirect=${to.fullPath}`)
+      return
+    }
+    if (loginUser.userRole !== 'admin') {
+      message.error('没有权限')
+      next(`/user/login?redirect=${to.fullPath}`)
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

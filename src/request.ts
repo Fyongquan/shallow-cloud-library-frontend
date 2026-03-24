@@ -1,5 +1,6 @@
-import axios from 'axios'
+﻿import axios from 'axios'
 import { message } from 'ant-design-vue'
+import { isLoginCheckRequest, notifyAndRedirectToLogin } from '@/utils/auth'
 
 const myAxios = axios.create({
   baseURL: '',
@@ -7,14 +8,12 @@ const myAxios = axios.create({
   withCredentials: true,
 })
 
-const isLoginPage = () => window.location.pathname.includes('/user/login')
-
-const isLoginCheckRequest = (url: string) => {
-  return url.includes('user/get/login')
-}
-
-const redirectToLogin = () => {
-  window.location.href = `/user/login?redirect=${window.location.href}`
+const getRequestUrl = (responseOrError: any) => {
+  const responseUrl = responseOrError?.request?.responseURL ?? ''
+  if (responseUrl) {
+    return responseUrl
+  }
+  return responseOrError?.config?.url ?? ''
 }
 
 myAxios.interceptors.request.use(
@@ -29,19 +28,17 @@ myAxios.interceptors.request.use(
 myAxios.interceptors.response.use(
   function (response) {
     const { data } = response
-    const responseURL = response?.request?.responseURL ?? ''
+    const requestUrl = getRequestUrl(response)
+    const businessCode = Number(data?.code)
 
-    if (data?.code === 40100) {
-      if (!isLoginCheckRequest(responseURL) && !isLoginPage()) {
-        message.warning('请先登录')
-        redirectToLogin()
-      }
+    if (businessCode === 401 || businessCode === 40100) {
+      notifyAndRedirectToLogin(requestUrl)
       return response
     }
 
-    if (data?.code && data.code !== 200) {
-      if (!isLoginCheckRequest(responseURL)) {
-        message.error(data.message || '请求失败')
+    if (businessCode && businessCode !== 200) {
+      if (!isLoginCheckRequest(requestUrl)) {
+        message.error(data.message || '\u8bf7\u6c42\u5931\u8d25')
       }
     }
 
@@ -50,26 +47,26 @@ myAxios.interceptors.response.use(
   function (error) {
     const response = error?.response
     const status = response?.status
-    const responseURL = response?.request?.responseURL ?? ''
+    const requestUrl = getRequestUrl(response || error)
     const backendMessage = response?.data?.message
+    const businessCode = Number(response?.data?.code)
 
-    if (status === 401 && !isLoginCheckRequest(responseURL) && !isLoginPage()) {
-      message.warning('请先登录')
-      redirectToLogin()
+    if (businessCode === 401 || businessCode === 40100 || status === 401) {
+      notifyAndRedirectToLogin(requestUrl)
       return Promise.reject(error)
     }
 
     if (status === 403) {
-      message.error(backendMessage || '没有权限')
+      message.error(backendMessage || '\u6ca1\u6709\u6743\u9650')
       return Promise.reject(error)
     }
 
     if (status === 503) {
-      message.error(backendMessage || '服务不可用，请检查后端服务')
+      message.error(backendMessage || '\u670d\u52a1\u4e0d\u53ef\u7528\uff0c\u8bf7\u68c0\u67e5\u540e\u7aef\u670d\u52a1')
       return Promise.reject(error)
     }
 
-    if (backendMessage && !isLoginCheckRequest(responseURL)) {
+    if (backendMessage && !isLoginCheckRequest(requestUrl)) {
       message.error(backendMessage)
     }
 

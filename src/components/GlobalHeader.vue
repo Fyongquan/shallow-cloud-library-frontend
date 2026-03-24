@@ -89,6 +89,7 @@ import type { MenuProps } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import { userLogoutUsingPost } from '@/api/userController.ts'
+import { notifyAndRedirectToLogin } from '@/utils/auth'
 
 const loginUserStore = useLoginUserStore()
 
@@ -204,6 +205,10 @@ const fetchUnreadCount = async () => {
       return
     }
     const data = await response.json()
+    if (Number(data?.code) === 401 || Number(data?.code) === 40100) {
+      notifyAndRedirectToLogin('/api/message/unread/count')
+      return
+    }
     if (data?.code === 200) {
       unreadCount.value = normalizeUnreadCount(data.data)
     }

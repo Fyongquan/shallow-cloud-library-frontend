@@ -330,7 +330,7 @@ const confirmCrop = async () => {
     }
     message.error(`头像上传失败：${res.data.message}`)
   } catch (error: any) {
-    message.error(`头像上传失败：${error?.message ?? '请稍后重试'}`)
+    console.error('头像上传失败', error)
   } finally {
     cropUploading.value = false
   }

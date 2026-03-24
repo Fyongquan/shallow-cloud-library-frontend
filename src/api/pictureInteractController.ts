@@ -23,6 +23,8 @@ export interface PictureCommentVO {
   rootId?: number | string
   replyUserId?: number | string
   content?: string
+  thumbCount?: number
+  thumbed?: boolean
   createTime?: string
   updateTime?: string
   user?: API.UserVO
@@ -156,6 +158,34 @@ export async function listPictureCommentVoByPageUsingPost(
   options?: Record<string, any>,
 ) {
   return request<BaseResponse<PageResult<PictureCommentVO>>>('/api/picture_comment/list/page/vo', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+export async function doPictureCommentThumbUsingPost(
+  body: { commentId: number | string },
+  options?: Record<string, any>,
+) {
+  return request<BaseResponse<boolean>>('/api/picture_comment/thumb/do', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+export async function undoPictureCommentThumbUsingPost(
+  body: { commentId: number | string },
+  options?: Record<string, any>,
+) {
+  return request<BaseResponse<boolean>>('/api/picture_comment/thumb/undo', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

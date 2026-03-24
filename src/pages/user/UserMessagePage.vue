@@ -216,6 +216,9 @@ const getTitle = (item: MessageVO) => {
     return `${item.sender?.userName || '有用户'} 收藏了你的图片`
   }
   if (item.messageType === 'comment') {
+    if (item.content?.includes('评论收到了新回复')) {
+      return `${item.sender?.userName || '有用户'} 回复了你的评论`
+    }
     return `${item.sender?.userName || '有用户'} 评论了你的图片`
   }
   if (item.messageType === 'spaceInvite') {
