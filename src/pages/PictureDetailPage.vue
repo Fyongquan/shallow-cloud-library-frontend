@@ -686,6 +686,10 @@ const onToggleCommentThumb = async (comment: PictureCommentVO) => {
   if (!commentId || thumbingCommentId.value) {
     return
   }
+  const getSafeThumbCount = (value?: number | string) => {
+    const num = Number(value ?? 0)
+    return Number.isFinite(num) && num > 0 ? num : 0
+  }
   thumbingCommentId.value = commentId
   try {
     if (comment.thumbed) {
@@ -694,7 +698,7 @@ const onToggleCommentThumb = async (comment: PictureCommentVO) => {
         return
       }
       comment.thumbed = false
-      comment.thumbCount = Math.max(0, (comment.thumbCount ?? 0) - 1)
+      comment.thumbCount = Math.max(0, getSafeThumbCount(comment.thumbCount) - 1)
       return
     }
     const res = await doPictureCommentThumbUsingPost({ commentId })
@@ -702,7 +706,7 @@ const onToggleCommentThumb = async (comment: PictureCommentVO) => {
       return
     }
     comment.thumbed = true
-    comment.thumbCount = (comment.thumbCount ?? 0) + 1
+    comment.thumbCount = getSafeThumbCount(comment.thumbCount) + 1
   } finally {
     thumbingCommentId.value = undefined
   }
