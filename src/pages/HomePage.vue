@@ -27,6 +27,65 @@
         </a-button>
       </a-space>
     </div>
+    <div class="advanced-filter-bar">
+      <a-space wrap :size="[8, 8]">
+        <a-input
+          v-model:value="filterSpaceId"
+          style="width: 180px"
+          placeholder="按空间ID筛选"
+          allow-clear
+          @pressEnter="doSearch"
+        />
+        <a-input
+          v-model:value="filterUserId"
+          style="width: 180px"
+          placeholder="按用户ID筛选"
+          allow-clear
+          @pressEnter="doSearch"
+        />
+        <a-space :size="4">
+          <span class="filter-label">格式筛选：</span>
+          <a-select
+            v-model:value="filterPicFormat"
+            style="width: 160px"
+            placeholder="请选择格式"
+            :options="formatOptions"
+            show-search
+            allow-clear
+            @change="doSearch"
+          />
+        </a-space>
+        <a-popover
+          placement="bottomLeft"
+          trigger="click"
+          :open="showColorPicker"
+          @openChange="onColorPickerOpenChange"
+          overlayClassName="gallery-color-picker-popover"
+        >
+          <template #content>
+            <div @mousedown="onColorPickerInteract" @touchstart="onColorPickerInteract">
+              <ColorPicker
+                isWidget
+                pickerType="chrome"
+                format="hex"
+                :pureColor="normalizeColorInput(filterPicColor)"
+                @pureColorChange="onColorPickChange"
+              />
+            </div>
+          </template>
+          <a-input
+            v-model:value="filterPicColor"
+            style="width: 180px"
+            placeholder="按颜色筛选（可输入/可点选）"
+            allow-clear
+            @clear="onClearColorFilter"
+            @pressEnter="doSearch"
+          />
+        </a-popover>
+        <a-button type="primary" @click="doSearch">应用筛选</a-button>
+        <a-button @click="resetAdvancedFilters">重置筛选</a-button>
+      </a-space>
+    </div>
     <a-tabs v-model:active-key="selectedCategory" @change="doSearch">
       <a-tab-pane key="all" tab="全部" />
       <a-tab-pane v-for="category in categoryList" :tab="category" :key="category" />
@@ -59,6 +118,8 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { ColorPicker } from 'vue3-colorpicker'
+import 'vue3-colorpicker/style.css'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import PictureList from '@/components/PictureList.vue'
 import {
@@ -89,6 +150,55 @@ const selectedCategory = ref<string>('all')
 const tagList = ref<string[]>([])
 const selectedTagList = ref<boolean[]>([])
 const favorOnly = ref(false)
+const filterUserId = ref('')
+const filterSpaceId = ref('')
+const filterPicFormat = ref<string>()
+const filterPicColor = ref<string>()
+const showColorPicker = ref(false)
+const colorPickerInteracted = ref(false)
+const formatOptions = [
+  { label: 'JPG', value: 'jpg' },
+  { label: 'JPEG', value: 'jpeg' },
+  { label: 'PNG', value: 'png' },
+  { label: 'WEBP', value: 'webp' },
+  { label: 'GIF', value: 'gif' },
+  { label: 'BMP', value: 'bmp' },
+  { label: 'SVG', value: 'svg' },
+]
+
+const normalizeIdInput = (value?: string) => {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
+}
+
+const normalizeColorInput = (value?: string) => {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return undefined
+  }
+  const upper = trimmed.toUpperCase()
+  return upper.startsWith('#') ? upper : `#${upper}`
+}
+
+const onColorPickChange = (value: string) => {
+  if (!colorPickerInteracted.value) {
+    return
+  }
+  filterPicColor.value = normalizeColorInput(value) ?? ''
+}
+
+const onColorPickerOpenChange = (open: boolean) => {
+  colorPickerInteracted.value = false
+  showColorPicker.value = open
+}
+
+const onColorPickerInteract = () => {
+  colorPickerInteracted.value = true
+}
+
+const onClearColorFilter = () => {
+  filterPicColor.value = undefined
+}
 
 const fetchData = async () => {
   loading.value = true
@@ -104,6 +214,14 @@ const fetchData = async () => {
       params.tags.push(tagList.value[index])
     }
   })
+  const userId = normalizeIdInput(filterUserId.value)
+  const searchSpaceId = normalizeIdInput(filterSpaceId.value)
+  const picFormat = filterPicFormat.value?.trim()
+  const picColor = normalizeColorInput(filterPicColor.value)
+  params.userId = userId as any
+  params.searchSpaceId = searchSpaceId as any
+  params.picFormat = picFormat || undefined
+  params.picColor = picColor
   params.favorOnly = favorOnly.value && !!loginUserStore.loginUser.id
   const res = await listPictureVoByPageUsingPost(params)
   if (res.data.code === 200 && res.data.data) {
@@ -150,6 +268,15 @@ const doSearch = () => {
   fetchData()
 }
 
+const resetAdvancedFilters = () => {
+  filterUserId.value = ''
+  filterSpaceId.value = ''
+  filterPicFormat.value = undefined
+  filterPicColor.value = undefined
+  showColorPicker.value = false
+  doSearch()
+}
+
 const getTagCategoryOptions = async () => {
   const res = await listPictureTagCategoryUsingGet()
   if (res.data.code === 200 && res.data.data) {
@@ -180,6 +307,18 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 16px;
+}
+
+#homePage .advanced-filter-bar {
+  margin-bottom: 12px;
+}
+
+#homePage .filter-label {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+:deep(.gallery-color-picker-popover .ant-popover-inner) {
+  padding: 8px;
 }
 
 #homePage .tag-bar {

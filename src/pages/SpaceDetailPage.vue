@@ -53,12 +53,6 @@
 
     <PictureSearchForm :onSearch="onSearch" />
 
-    <div style="margin-bottom: 16px" />
-
-    <a-form-item label="按颜色搜索">
-      <ColorPicker format="hex" @pureColorChange="onColorChange" />
-    </a-form-item>
-
     <a-checkbox
       v-model:checked="onlyPublicVisible"
       style="margin-bottom: 16px"
@@ -98,11 +92,9 @@
 import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { ColorPicker } from 'vue3-colorpicker'
-import 'vue3-colorpicker/style.css'
 import { BarChartOutlined, BulbOutlined, EditOutlined, TeamOutlined } from '@ant-design/icons-vue'
 import { getSpaceVoByIdUsingGet } from '@/api/spaceController'
-import { listPictureVoByPageUsingPost, searchPictureByColorUsingPost } from '@/api/pictureController'
+import { listPictureVoByPageUsingPost } from '@/api/pictureController'
 import PictureList from '@/components/PictureList.vue'
 import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
@@ -197,25 +189,6 @@ const onSearch = (newSearchParams: API.PictureQueryRequest) => {
     publicVisibleOnly: onlyPublicVisible.value,
   }
   fetchData()
-}
-
-const onColorChange = async (color: string) => {
-  loading.value = true
-  try {
-    const res = await searchPictureByColorUsingPost({
-      picColor: color,
-      // Keep Snowflake id precision: do not cast to Number in browser.
-      spaceId: id.value as any,
-    })
-    if (res.data.code === 200 && res.data.data) {
-      dataList.value = res.data.data ?? []
-      total.value = dataList.value.length
-    } else {
-      message.error('颜色搜索失败：' + res.data.message)
-    }
-  } finally {
-    loading.value = false
-  }
 }
 
 const onTogglePublicVisible = () => {

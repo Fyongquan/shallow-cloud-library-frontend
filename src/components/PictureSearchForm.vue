@@ -1,6 +1,5 @@
 <template>
   <div class="picture-search-form">
-    <!-- 搜索表单 -->
     <a-form name="searchForm" layout="inline" :model="searchParams" @finish="doSearch">
       <a-form-item label="关键词" name="searchText">
         <a-input
@@ -51,8 +50,49 @@
       <a-form-item label="高度" name="picHeight">
         <a-input-number v-model:value="searchParams.picHeight" />
       </a-form-item>
-      <a-form-item label="格式" name="picFormat">
-        <a-input v-model:value="searchParams.picFormat" placeholder="请输入格式" allow-clear />
+      <a-form-item name="picFormat">
+        <a-space :size="4">
+          <span class="filter-label">格式筛选：</span>
+          <a-select
+            v-model:value="searchParams.picFormat"
+            style="min-width: 160px"
+            placeholder="请选择格式"
+            :options="formatOptions"
+            show-search
+            allow-clear
+          />
+        </a-space>
+      </a-form-item>
+      <a-form-item name="picColor">
+        <a-space :size="4">
+          <span class="filter-label">颜色筛选：</span>
+          <a-popover
+            placement="bottomLeft"
+            trigger="click"
+            :open="showColorPicker"
+            @openChange="onColorPickerOpenChange"
+            overlayClassName="gallery-color-picker-popover"
+          >
+            <template #content>
+              <div @mousedown="onColorPickerInteract" @touchstart="onColorPickerInteract">
+                <ColorPicker
+                  isWidget
+                  pickerType="chrome"
+                  format="hex"
+                  :pureColor="normalizeColorInput(searchParams.picColor as any)"
+                  @pureColorChange="onColorPickChange"
+                />
+              </div>
+            </template>
+            <a-input
+              v-model:value="searchParams.picColor"
+              style="min-width: 180px"
+              placeholder="可输入 / 可点选"
+              allow-clear
+              @clear="onClearColorFilter"
+            />
+          </a-popover>
+        </a-space>
       </a-form-item>
       <a-form-item>
         <a-space>
@@ -63,13 +103,13 @@
     </a-form>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
-import {
-  listPictureTagCategoryUsingGet,
-  listPictureVoByPageUsingPost,
-} from '@/api/pictureController.ts'
+import { ColorPicker } from 'vue3-colorpicker'
+import 'vue3-colorpicker/style.css'
+import { listPictureTagCategoryUsingGet } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 
 interface Props {
@@ -78,39 +118,49 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// 搜索条件
 const searchParams = reactive<API.PictureQueryRequest>({})
+const categoryOptions = ref<any[]>([])
+const tagOptions = ref<any[]>([])
+const showColorPicker = ref(false)
+const colorPickerInteracted = ref(false)
 
-// 搜索数据
+const formatOptions = [
+  { label: 'JPG', value: 'jpg' },
+  { label: 'JPEG', value: 'jpeg' },
+  { label: 'PNG', value: 'png' },
+  { label: 'WEBP', value: 'webp' },
+  { label: 'GIF', value: 'gif' },
+  { label: 'BMP', value: 'bmp' },
+  { label: 'SVG', value: 'svg' },
+]
+
+const normalizeColorInput = (value?: string) => {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return undefined
+  }
+  const upper = trimmed.toUpperCase()
+  return upper.startsWith('#') ? upper : `#${upper}`
+}
+
 const doSearch = () => {
+  searchParams.picColor = normalizeColorInput(searchParams.picColor as any) as any
   props.onSearch?.(searchParams)
 }
 
-// 标签和分类选项
-const categoryOptions = ref<string[]>([])
-const tagOptions = ref<string[]>([])
-
-/**
- * 获取标签和分类选项
- * @param values
- */
 const getTagCategoryOptions = async () => {
   const res = await listPictureTagCategoryUsingGet()
   if (res.data.code === 200 && res.data.data) {
-    tagOptions.value = (res.data.data.tagList ?? []).map((data: string) => {
-      return {
-        value: data,
-        label: data,
-      }
-    })
-    categoryOptions.value = (res.data.data.categoryList ?? []).map((data: string) => {
-      return {
-        value: data,
-        label: data,
-      }
-    })
+    tagOptions.value = (res.data.data.tagList ?? []).map((data: string) => ({
+      value: data,
+      label: data,
+    }))
+    categoryOptions.value = (res.data.data.categoryList ?? []).map((data: string) => ({
+      value: data,
+      label: data,
+    }))
   } else {
-    message.error('获取标签分类列表失败，' + res.data.message)
+    message.error('获取标签分类列表失败：' + res.data.message)
   }
 }
 
@@ -118,14 +168,9 @@ onMounted(() => {
   getTagCategoryOptions()
 })
 
-const dateRange = ref<[]>([])
+const dateRange = ref<any[]>([])
 
-/**
- * 日期范围更改时触发
- * @param dates
- * @param dateStrings
- */
-const onRangeChange = (dates: any[], dateStrings: string[]) => {
+const onRangeChange = (dates: any[]) => {
   if (dates?.length >= 2) {
     searchParams.startEditTime = dates[0].toDate()
     searchParams.endEditTime = dates[1].toDate()
@@ -135,7 +180,6 @@ const onRangeChange = (dates: any[], dateStrings: string[]) => {
   }
 }
 
-// 时间范围预设
 const rangePresets = ref([
   { label: '过去 7 天', value: [dayjs().add(-7, 'd'), dayjs()] },
   { label: '过去 14 天', value: [dayjs().add(-14, 'd'), dayjs()] },
@@ -143,15 +187,32 @@ const rangePresets = ref([
   { label: '过去 90 天', value: [dayjs().add(-90, 'd'), dayjs()] },
 ])
 
-// 清理
+const onColorPickChange = (value: string) => {
+  if (!colorPickerInteracted.value) {
+    return
+  }
+  searchParams.picColor = normalizeColorInput(value) as any
+}
+
+const onColorPickerOpenChange = (open: boolean) => {
+  colorPickerInteracted.value = false
+  showColorPicker.value = open
+}
+
+const onColorPickerInteract = () => {
+  colorPickerInteracted.value = true
+}
+
+const onClearColorFilter = () => {
+  searchParams.picColor = undefined
+}
+
 const doClear = () => {
-  // 取消所有对象的值
   Object.keys(searchParams).forEach((key) => {
-    searchParams[key] = undefined
+    ;(searchParams as any)[key] = undefined
   })
-  // 日期筛选项单独清空，必须定义为空数组
   dateRange.value = []
-  // 清空后重新搜索
+  showColorPicker.value = false
   props.onSearch?.(searchParams)
 }
 </script>
@@ -159,5 +220,13 @@ const doClear = () => {
 <style scoped>
 .picture-search-form .ant-form-item {
   margin-top: 16px;
+}
+
+.filter-label {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+:deep(.gallery-color-picker-popover .ant-popover-inner) {
+  padding: 8px;
 }
 </style>

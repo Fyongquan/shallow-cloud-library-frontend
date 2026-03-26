@@ -452,6 +452,7 @@ declare namespace API {
     name?: string
     nullSpaceId?: boolean
     pageSize?: number
+    picColor?: string
     picFormat?: string
     picHeight?: number
     picScale?: number
@@ -463,6 +464,7 @@ declare namespace API {
     reviewStatus?: number
     reviewTime?: string
     reviewerId?: number
+    searchSpaceId?: number
     searchText?: string
     sortField?: string
     sortOrder?: string
