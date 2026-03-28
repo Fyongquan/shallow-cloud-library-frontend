@@ -166,6 +166,22 @@ export async function getMyScoreInfoUsingGet(options?: { [key: string]: any }) {
   })
 }
 
+/** getPlatformOverview GET /api/user/dashboard/platform/overview */
+export async function getPlatformOverviewUsingGet(
+  params: {
+    days?: number
+  } = {},
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePlatformOverviewVO_>('/api/user/dashboard/platform/overview', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
 /** listMyScoreRecordByPage POST /api/user/score/record/page */
 export async function listMyScoreRecordByPageUsingPost(
   body: API.UserScoreRecordQueryRequest,

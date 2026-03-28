@@ -143,6 +143,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePlatformOverviewVO_ = {
+    code?: number
+    data?: PlatformOverviewVO
+    message?: string
+  }
+
   type BaseResponsePicture_ = {
     code?: number
     data?: Picture
@@ -244,6 +250,11 @@ declare namespace API {
   type getPictureByIdUsingGETParams = {
     /** id */
     id?: string | number
+  }
+
+  type getPlatformOverviewUsingGETParams = {
+    /** days */
+    days?: number
   }
 
   type getPictureOutPaintingTaskUsingGETParams = {
@@ -377,6 +388,23 @@ declare namespace API {
     records?: UserScoreRecordVO[]
     size?: number
     total?: number
+  }
+
+  type PlatformOverviewDailyStatVO = {
+    activeUserCount?: number
+    day?: string
+    newUserCount?: number
+    uploadCount?: number
+  }
+
+  type PlatformOverviewVO = {
+    dailyStats?: PlatformOverviewDailyStatVO[]
+    recentActiveUserCount?: number
+    recentNewUserCount?: number
+    recentUploadCount?: number
+    totalPictureCount?: number
+    totalSpaceCount?: number
+    totalUserCount?: number
   }
 
   type Parameters = {

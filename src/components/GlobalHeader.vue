@@ -115,6 +115,11 @@ const originItems = [
     label: '空间管理',
     title: '空间管理',
   },
+  {
+    key: '/admin/platformOverview',
+    label: '平台总览',
+    title: '平台总览',
+  },
 ]
 
 const filterMenus = (menus = [] as MenuProps['items']) => {

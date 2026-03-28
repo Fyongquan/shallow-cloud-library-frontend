@@ -7,6 +7,7 @@ import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import AddPicturePage from '@/pages/AddPicturePage.vue'
 import PictureManagePage from '@/pages/admin/PictureManagePage.vue'
+import PlatformOverviewPage from '@/pages/admin/PlatformOverviewPage.vue'
 import PictureDetailPage from '@/pages/PictureDetailPage.vue'
 import AddPictureBatchPage from '@/pages/AddPictureBatchPage.vue'
 import SpaceManagePage from '@/pages/admin/SpaceManagePage.vue'
@@ -85,6 +86,14 @@ const router = createRouter({
       path: '/admin/spaceManage',
       name: '空间管理',
       component: SpaceManagePage,
+      meta: {
+        requireLogin: true,
+      },
+    },
+    {
+      path: '/admin/platformOverview',
+      name: '平台总览',
+      component: PlatformOverviewPage,
       meta: {
         requireLogin: true,
       },
