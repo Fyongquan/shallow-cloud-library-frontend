@@ -53,7 +53,7 @@
             </div>
             <template v-if="showOp" #actions>
               <ShareAltOutlined @click="(e) => doShare(picture, e)" />
-              <SearchOutlined @click="(e) => doSearch(picture, e)" />
+              <SearchOutlined v-if="showSearchOp" @click="(e) => doSearch(picture, e)" />
               <EditOutlined v-if="canEdit" @click="(e) => doEdit(picture, e)" />
               <DeleteOutlined v-if="canDelete" @click="(e) => doDelete(picture, e)" />
             </template>
@@ -87,6 +87,7 @@ interface Props {
   showOp?: boolean
   canEdit?: boolean
   canDelete?: boolean
+  showSearchOp?: boolean
   showPublicThumbCount?: boolean
   onReload?: () => void
 }
@@ -97,6 +98,7 @@ const props = withDefaults(defineProps<Props>(), {
   showOp: false,
   canEdit: false,
   canDelete: false,
+  showSearchOp: true,
   showPublicThumbCount: false,
 })
 

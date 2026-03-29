@@ -79,6 +79,7 @@
       :dataList="dataList"
       :loading="loading"
       :showOp="true"
+      :showSearchOp="false"
       :canEdit="canEditPicture"
       :canDelete="canDeletePicture"
       :onReload="fetchData"
@@ -114,7 +115,12 @@ import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
 import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { formatSize } from '@/utils'
-import { SPACE_LEVEL_ENUM, SPACE_LEVEL_MAP, SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '@/constants/space'
+import {
+  SPACE_LEVEL_ENUM,
+  SPACE_LEVEL_MAP,
+  SPACE_PERMISSION_ENUM,
+  SPACE_TYPE_MAP,
+} from '@/constants/space'
 import { toIdString } from '@/utils/id'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 
