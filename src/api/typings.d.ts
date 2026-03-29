@@ -702,6 +702,11 @@ declare namespace API {
     spaceName?: string
   }
 
+  type SpaceUpgradeRequest = {
+    id?: number
+    targetSpaceLevel?: number
+  }
+
   type SpaceUsageAnalyzeRequest = {
     queryAll?: boolean
     queryPublic?: boolean

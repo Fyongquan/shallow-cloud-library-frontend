@@ -39,7 +39,21 @@
         <a-button v-if="canEditPicture" :icon="h(EditOutlined)" @click="doBatchEdit">
           批量编辑
         </a-button>
-        <a-tooltip :title="`空间使用 ${formatSize(space.totalSize)} / ${formatSize(space.maxSize)}`">
+        <a-tooltip
+          v-if="canUpgradeSpace"
+          placement="bottom"
+          :get-popup-container="getTooltipContainer"
+          :title="canUpgradeToNextLevel ? `升级到 ${nextSpaceLevelText}` : '当前已是最高等级'"
+        >
+          <a-button :loading="upgradeLoading" :disabled="!canUpgradeToNextLevel" @click="doUpgradeSpace">
+            升级空间
+          </a-button>
+        </a-tooltip>
+        <a-tooltip
+          placement="bottomLeft"
+          :get-popup-container="getTooltipContainer"
+          :title="spaceUsageTooltip"
+        >
           <a-progress
             type="circle"
             :size="42"
@@ -93,14 +107,14 @@ import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { BarChartOutlined, BulbOutlined, EditOutlined, TeamOutlined } from '@ant-design/icons-vue'
-import { getSpaceVoByIdUsingGet } from '@/api/spaceController'
+import { getSpaceVoByIdUsingGet, upgradeSpaceUsingPost } from '@/api/spaceController'
 import { listPictureVoByPageUsingPost } from '@/api/pictureController'
 import PictureList from '@/components/PictureList.vue'
 import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
 import ImageTextGenerate from '@/components/ImageTextGenerate.vue'
 import { formatSize } from '@/utils'
-import { SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '@/constants/space'
+import { SPACE_LEVEL_ENUM, SPACE_LEVEL_MAP, SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '@/constants/space'
 import { toIdString } from '@/utils/id'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 
@@ -116,6 +130,7 @@ const space = ref<API.SpaceVO>({})
 const dataList = ref<API.PictureVO[]>([])
 const total = ref(0)
 const loading = ref(true)
+const upgradeLoading = ref(false)
 const onlyPublicVisible = ref(false)
 
 const searchParams = ref<API.PictureQueryRequest>({
@@ -135,6 +150,27 @@ const canUploadPicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_U
 const canEditPicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_EDIT)
 const canDeletePicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_DELETE)
 const showSpaceUserManage = computed(() => canManageSpaceUser.value && space.value.spaceType === 1)
+const canUpgradeSpace = computed(() => {
+  const loginUserId = loginUserStore.loginUser?.id
+  if (!loginUserId || !space.value.userId) {
+    return false
+  }
+  return loginUserStore.loginUser.userRole === 'admin' || loginUserId === space.value.userId
+})
+const canUpgradeToNextLevel = computed(() => {
+  return Number(space.value.spaceLevel ?? SPACE_LEVEL_ENUM.COMMON) < SPACE_LEVEL_ENUM.FLAGSHIP
+})
+const nextSpaceLevelText = computed(() => {
+  const nextLevel = Number(space.value.spaceLevel ?? SPACE_LEVEL_ENUM.COMMON) + 1
+  return SPACE_LEVEL_MAP[nextLevel] ?? '未知等级'
+})
+const currentSpaceLevelText = computed(() => {
+  const level = Number(space.value.spaceLevel ?? SPACE_LEVEL_ENUM.COMMON)
+  return SPACE_LEVEL_MAP[level] ?? '未知等级'
+})
+const spaceUsageTooltip = computed(() => {
+  return `当前空间等级：${currentSpaceLevelText.value}，空间使用 ${formatSize(space.value.totalSize)} / ${formatSize(space.value.maxSize)}`
+})
 
 const fetchSpaceDetail = async () => {
   try {
@@ -209,6 +245,27 @@ const doBatchEdit = () => {
 
 const doTextGenerate = () => {
   imageTextGenerateRef.value?.openModal()
+}
+
+const getTooltipContainer = (triggerNode: HTMLElement) => {
+  return triggerNode?.parentElement ?? document.body
+}
+
+const doUpgradeSpace = async () => {
+  if (!canUpgradeToNextLevel.value || !id.value) {
+    return
+  }
+  upgradeLoading.value = true
+  try {
+    const res = await upgradeSpaceUsingPost({ id: id.value as any })
+    if (res.data.code !== 200) {
+      return
+    }
+    await fetchSpaceDetail()
+    message.success(`空间升级成功，当前等级：${currentSpaceLevelText.value}`)
+  } finally {
+    upgradeLoading.value = false
+  }
 }
 
 const onBatchEditPictureSuccess = () => {

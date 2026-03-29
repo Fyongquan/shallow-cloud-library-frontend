@@ -129,3 +129,18 @@ export async function updateSpaceUsingPost(
     ...(options || {}),
   })
 }
+
+/** upgradeSpace POST /api/space/upgrade */
+export async function upgradeSpaceUsingPost(
+  body: API.SpaceUpgradeRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/space/upgrade', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
