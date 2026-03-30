@@ -3,7 +3,7 @@ import { message } from 'ant-design-vue'
 import { isLoginCheckRequest, notifyAndRedirectToLogin } from '@/utils/auth'
 
 const myAxios = axios.create({
-  baseURL: '',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
   timeout: 10000,
   withCredentials: true,
 })
