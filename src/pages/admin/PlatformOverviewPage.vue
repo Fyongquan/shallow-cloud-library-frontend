@@ -1,5 +1,5 @@
 <template>
-  <div id="platformOverviewPage">
+  <div id="platformOverviewPage" class="page-shell">
     <a-space class="toolbar" size="middle">
       <h2 class="title">平台数据总览</h2>
       <a-select
@@ -11,7 +11,8 @@
       <a-button :loading="loading" @click="fetchData">刷新</a-button>
     </a-space>
 
-    <a-row :gutter="[16, 16]" class="summary-row">
+    <div class="page-scroll">
+      <a-row :gutter="[16, 16]" class="summary-row">
       <a-col :xs="24" :sm="12" :md="8" :xl="6">
         <a-card>
           <a-statistic title="用户总数" :value="overview.totalUserCount ?? 0" />
@@ -42,21 +43,22 @@
           <a-statistic :title="`近 ${days} 天活跃上传用户`" :value="overview.recentActiveUserCount ?? 0" />
         </a-card>
       </a-col>
-    </a-row>
+      </a-row>
 
-    <a-card :title="`近 ${days} 天趋势`" :loading="loading">
-      <v-chart :option="chartOption" style="height: 360px; width: 100%" />
-    </a-card>
+      <a-card :title="`近 ${days} 天趋势`" :loading="loading">
+        <v-chart :option="chartOption" style="height: 360px; width: 100%" />
+      </a-card>
 
-    <a-card title="每日明细" class="detail-card" :loading="loading">
-      <a-table
-        row-key="day"
-        :columns="columns"
-        :data-source="overview.dailyStats ?? []"
-        :pagination="false"
-        size="small"
-      />
-    </a-card>
+      <a-card title="每日明细" class="detail-card" :loading="loading">
+        <a-table
+          row-key="day"
+          :columns="columns"
+          :data-source="overview.dailyStats ?? []"
+          :pagination="false"
+          size="small"
+        />
+      </a-card>
+    </div>
   </div>
 </template>
 
@@ -156,6 +158,7 @@ onMounted(() => {
 <style scoped>
 #platformOverviewPage {
   width: 100%;
+  min-height: 0;
 }
 
 .toolbar {

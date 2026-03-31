@@ -1,57 +1,61 @@
 ﻿<template>
-  <div id="vipMallPage">
-    <a-card title="会员积分商城" :bordered="false">
-      <a-row :gutter="16">
-        <a-col :xs="24" :md="12">
-          <a-statistic title="当前积分" :value="scoreInfo.userScore ?? 0" />
-        </a-col>
-        <a-col :xs="24" :md="12">
-          <a-statistic
-            title="会员到期时间"
-            :value="scoreInfo.vipExpireTime ? formatDate(scoreInfo.vipExpireTime) : '未开通会员'"
+  <div id="vipMallPage" class="page-shell">
+    <div class="page-scroll">
+      <div class="mall-content">
+        <a-card title="会员积分商城" :bordered="false">
+          <a-row :gutter="16">
+            <a-col :xs="24" :md="12">
+              <a-statistic title="当前积分" :value="scoreInfo.userScore ?? 0" />
+            </a-col>
+            <a-col :xs="24" :md="12">
+              <a-statistic
+                title="会员到期时间"
+                :value="scoreInfo.vipExpireTime ? formatDate(scoreInfo.vipExpireTime) : '未开通会员'"
+              />
+            </a-col>
+          </a-row>
+        </a-card>
+
+        <a-card title="会员套餐" style="margin-top: 16px" :bordered="false">
+          <a-row :gutter="16">
+            <a-col v-for="item in vipPackages" :key="item.packageType" :xs="24" :md="8">
+              <a-card size="small" class="package-card">
+                <h3>{{ item.packageName }}</h3>
+                <p>{{ item.description }}</p>
+                <div class="package-cost">{{ item.scoreCost }} 积分</div>
+                <a-button
+                  type="primary"
+                  block
+                  :loading="exchangeLoading === item.packageType"
+                  @click="exchangeVip(item.packageType)"
+                >
+                  立即兑换
+                </a-button>
+              </a-card>
+            </a-col>
+          </a-row>
+        </a-card>
+
+        <a-card title="积分流水" style="margin-top: 16px" :bordered="false">
+          <a-table
+            :columns="columns"
+            :data-source="scoreRecordList"
+            :pagination="false"
+            :loading="recordLoading"
+            row-key="id"
           />
-        </a-col>
-      </a-row>
-    </a-card>
-
-    <a-card title="会员套餐" style="margin-top: 16px" :bordered="false">
-      <a-row :gutter="16">
-        <a-col v-for="item in vipPackages" :key="item.packageType" :xs="24" :md="8">
-          <a-card size="small" class="package-card">
-            <h3>{{ item.packageName }}</h3>
-            <p>{{ item.description }}</p>
-            <div class="package-cost">{{ item.scoreCost }} 积分</div>
-            <a-button
-              type="primary"
-              block
-              :loading="exchangeLoading === item.packageType"
-              @click="exchangeVip(item.packageType)"
-            >
-              立即兑换
-            </a-button>
-          </a-card>
-        </a-col>
-      </a-row>
-    </a-card>
-
-    <a-card title="积分流水" style="margin-top: 16px" :bordered="false">
-      <a-table
-        :columns="columns"
-        :data-source="scoreRecordList"
-        :pagination="false"
-        :loading="recordLoading"
-        row-key="id"
-      />
-      <div class="pager-wrap">
-        <a-pagination
-          :current="recordQuery.current"
-          :page-size="recordQuery.pageSize"
-          :total="recordTotal"
-          :show-size-changer="false"
-          @change="onRecordPageChange"
-        />
+          <div class="pager-wrap">
+            <a-pagination
+              :current="recordQuery.current"
+              :page-size="recordQuery.pageSize"
+              :total="recordTotal"
+              :show-size-changer="false"
+              @change="onRecordPageChange"
+            />
+          </div>
+        </a-card>
       </div>
-    </a-card>
+    </div>
   </div>
 </template>
 
@@ -179,6 +183,10 @@ onMounted(async () => {
 
 <style scoped>
 #vipMallPage {
+  min-height: 0;
+}
+
+.mall-content {
   max-width: 1000px;
   margin: 0 auto;
 }

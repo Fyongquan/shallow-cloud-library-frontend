@@ -1,5 +1,5 @@
 <template>
-  <div id="spaceAnalyzePage">
+  <div id="spaceAnalyzePage" class="page-shell">
     <a-flex justify="space-between" align="center" wrap="wrap" :gap="12">
       <h2>空间图库分析 - {{ analyzeTitle }}</h2>
       <a-space v-if="isAdmin">
@@ -34,39 +34,41 @@
       </a-form>
     </a-card>
 
-    <a-alert
-      v-if="!analyzeReady"
-      type="info"
-      show-icon
-      message="请先选择要分析的空间"
-      style="margin-bottom: 16px"
-    />
+    <div class="page-scroll">
+      <a-alert
+        v-if="!analyzeReady"
+        type="info"
+        show-icon
+        message="请先选择要分析的空间"
+        style="margin-bottom: 16px"
+      />
 
-    <a-row v-else :gutter="[16, 16]">
-      <a-col :xs="24" :md="12">
-        <SpaceUsageAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
-      </a-col>
-      <a-col :xs="24" :md="12">
-        <SpaceCategoryAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
-      </a-col>
-      <a-col :xs="24" :md="12">
-        <SpaceTagAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
-      </a-col>
-      <a-col :xs="24" :md="12">
-        <SpaceSizeAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
-      </a-col>
-      <a-col :xs="24" :md="12">
-        <SpaceUserAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
-      </a-col>
-      <a-col :xs="24" :md="12" v-if="isAdmin && scopeType === 'all'">
-        <SpaceRankAnalyze
-          :spaceId="spaceId"
-          :queryAll="queryAll"
-          :queryPublic="queryPublic"
-          :topN="topN"
-        />
-      </a-col>
-    </a-row>
+      <a-row v-else :gutter="[16, 16]">
+        <a-col :xs="24" :md="12">
+          <SpaceUsageAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
+        </a-col>
+        <a-col :xs="24" :md="12">
+          <SpaceCategoryAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
+        </a-col>
+        <a-col :xs="24" :md="12">
+          <SpaceTagAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
+        </a-col>
+        <a-col :xs="24" :md="12">
+          <SpaceSizeAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
+        </a-col>
+        <a-col :xs="24" :md="12">
+          <SpaceUserAnalyze :spaceId="spaceId" :queryAll="queryAll" :queryPublic="queryPublic" />
+        </a-col>
+        <a-col :xs="24" :md="12" v-if="isAdmin && scopeType === 'all'">
+          <SpaceRankAnalyze
+            :spaceId="spaceId"
+            :queryAll="queryAll"
+            :queryPublic="queryPublic"
+            :topN="topN"
+          />
+        </a-col>
+      </a-row>
+    </div>
   </div>
 </template>
 
@@ -191,7 +193,7 @@ const analyzeTitle = computed(() => {
 
 <style scoped>
 #spaceAnalyzePage {
-  margin-bottom: 16px;
+  min-height: 0;
 }
 
 .scope-card {

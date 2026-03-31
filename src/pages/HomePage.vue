@@ -1,5 +1,5 @@
 ﻿<template>
-  <div id="homePage">
+  <div id="homePage" class="page-shell">
     <div class="search-bar">
       <a-input-search
         v-model:value="searchParams.searchText"
@@ -103,9 +103,9 @@
         </a-checkable-tag>
       </a-space>
     </div>
-    <PictureList :dataList="dataList" :loading="loading" showPublicThumbCount />
+    <PictureList class="picture-list-section" :dataList="dataList" :loading="loading" showPublicThumbCount />
     <a-pagination
-      style="text-align: right"
+      class="page-pagination"
       v-model:current="searchParams.current"
       v-model:pageSize="searchParams.pageSize"
       :total="total"
@@ -295,7 +295,7 @@ onMounted(() => {
 
 <style scoped>
 #homePage {
-  margin-bottom: 16px;
+  min-height: 0;
 }
 
 #homePage .search-bar {
@@ -323,5 +323,18 @@ onMounted(() => {
 
 #homePage .tag-bar {
   margin-bottom: 16px;
+}
+
+#homePage .picture-list-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+#homePage .page-pagination {
+  padding-top: 12px;
+  text-align: right;
 }
 </style>

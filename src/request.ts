@@ -18,6 +18,15 @@ const getRequestUrl = (responseOrError: any) => {
 
 myAxios.interceptors.request.use(
   function (config) {
+    const baseURL = String(config.baseURL ?? '').replace(/\/+$/, '')
+    const requestUrl = config.url
+
+    // Prevent duplicated "/api/api" when generated API paths already include "/api".
+    if (typeof requestUrl === 'string' && baseURL.endsWith('/api') && /^\/api(\/|$)/.test(requestUrl)) {
+      const normalizedUrl = requestUrl.replace(/^\/api(?=\/|$)/, '')
+      config.url = normalizedUrl || '/'
+    }
+
     return config
   },
   function (error) {

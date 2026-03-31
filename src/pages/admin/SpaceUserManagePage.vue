@@ -1,5 +1,5 @@
 <template>
-  <div id="spaceManagePage">
+  <div id="spaceManagePage" class="page-shell">
     <a-flex justify="space-between" align="center" wrap="wrap" gap="middle">
       <h2>空间成员管理</h2>
       <a-space wrap>
@@ -29,7 +29,7 @@
 
     <div style="margin-bottom: 16px" />
 
-    <a-table :columns="columns" :data-source="dataList" row-key="id">
+    <a-table class="data-table" :columns="columns" :data-source="dataList" row-key="id">
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'userInfo'">
           <a-space>
@@ -192,4 +192,26 @@ const canRemoveMember = (record: API.SpaceUserVO) => {
   }
   return toIdString(record.userId) !== currentUserId
 }
-</script>
+ </script>
+
+<style scoped>
+#spaceManagePage {
+  min-height: 0;
+}
+
+#spaceManagePage .data-table {
+  flex: 1;
+  min-height: 0;
+}
+
+#spaceManagePage :deep(.ant-spin-nested-loading),
+#spaceManagePage :deep(.ant-spin-container),
+#spaceManagePage :deep(.ant-table-wrapper) {
+  height: 100%;
+  min-height: 0;
+}
+
+#spaceManagePage :deep(.ant-table-wrapper) {
+  overflow: auto;
+}
+</style>

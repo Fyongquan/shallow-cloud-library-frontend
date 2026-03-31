@@ -1,127 +1,133 @@
-<template>
-  <div id="userProfilePage">
-    <a-card title="个人中心" :bordered="false">
-      <a-card size="small" style="margin-bottom: 16px">
-        <a-space style="width: 100%; justify-content: space-between">
-          <span>当前积分：{{ loginUserStore.loginUser.userScore ?? 0 }}</span>
-          <a-button type="primary" @click="goVipMall">进入会员商城</a-button>
-        </a-space>
-      </a-card>
-      <a-tabs v-model:activeKey="activeTab">
-        <a-tab-pane key="profile" tab="资料设置">
-          <a-alert
-            type="info"
-            show-icon
-            style="margin-bottom: 16px"
-            message="你的用户 ID 可用于加入团队空间时被管理员添加，请妥善保存。"
-          >
-            <template #description>
-              <a-space wrap>
-                <span>当前用户 ID：{{ loginUserStore.loginUser.id || '-' }}</span>
-                <a-button size="small" @click="copyUserId" :disabled="!loginUserStore.loginUser.id">
-                  复制 ID
-                </a-button>
-              </a-space>
-            </template>
-          </a-alert>
+﻿<template>
+  <div id="userProfilePage" class="page-shell">
+    <div class="page-scroll profile-scroll">
+      <a-card title="个人中心" :bordered="false">
+        <a-card size="small" style="margin-bottom: 16px">
+          <a-space style="width: 100%; justify-content: space-between">
+            <span>当前积分：{{ loginUserStore.loginUser.userScore ?? 0 }}</span>
+            <a-button type="primary" @click="goVipMall">进入会员商城</a-button>
+          </a-space>
+        </a-card>
 
-          <a-form layout="vertical" :model="profileForm" @finish="saveProfile">
-            <a-form-item
-              label="用户昵称"
-              name="userName"
-              :rules="[{ required: true, message: '请输入用户昵称' }]"
+        <a-tabs v-model:activeKey="activeTab">
+          <a-tab-pane key="profile" tab="资料设置">
+            <a-alert
+              type="info"
+              show-icon
+              style="margin-bottom: 16px"
+              message="你的用户 ID 可用于加入团队空间时被管理员添加，请妥善保存。"
             >
-              <a-input v-model:value="profileForm.userName" placeholder="请输入用户昵称" />
-            </a-form-item>
-
-            <a-form-item label="头像设置">
-              <a-space direction="vertical" style="width: 100%">
-                <a-space>
-                  <a-avatar :size="72" :src="profileForm.userAvatar">
-                    {{ profileForm.userName?.slice(0, 1) || '用' }}
-                  </a-avatar>
-                  <a-space>
-                    <a-button type="primary" @click="openAvatarModal">从我的图片中选择</a-button>
-                    <a-button @click="clearAvatar">清空头像</a-button>
-                  </a-space>
+              <template #description>
+                <a-space wrap>
+                  <span>当前用户 ID：{{ loginUserStore.loginUser.id || '-' }}</span>
+                  <a-button size="small" @click="copyUserId" :disabled="!loginUserStore.loginUser.id">
+                    复制 ID
+                  </a-button>
                 </a-space>
-                <div class="avatar-tip">
-                  选择图片后可以继续裁剪，最终会将头像地址直接保存到用户资料中。
-                </div>
-              </a-space>
-            </a-form-item>
+              </template>
+            </a-alert>
 
-            <a-form-item label="个人简介" name="userProfile">
-              <a-textarea
-                v-model:value="profileForm.userProfile"
-                :rows="4"
-                :maxlength="500"
-                show-count
-                placeholder="请输入个人简介"
-              />
-            </a-form-item>
+            <a-form layout="vertical" :model="profileForm" @finish="saveProfile">
+              <a-form-item
+                label="用户昵称"
+                name="userName"
+                :rules="[{ required: true, message: '请输入用户昵称' }]"
+              >
+                <a-input v-model:value="profileForm.userName" placeholder="请输入用户昵称" />
+              </a-form-item>
 
-            <a-form-item>
-              <a-button type="primary" html-type="submit" :loading="profileLoading">
-                保存资料
-              </a-button>
-            </a-form-item>
-          </a-form>
-        </a-tab-pane>
+              <a-form-item label="头像设置">
+                <a-space direction="vertical" style="width: 100%">
+                  <a-space>
+                    <a-avatar :size="72" :src="profileForm.userAvatar">
+                      {{ profileForm.userName?.slice(0, 1) || '用' }}
+                    </a-avatar>
+                    <a-space>
+                      <a-button type="primary" @click="openAvatarModal">从我的图片中选择</a-button>
+                      <a-button @click="clearAvatar">清空头像</a-button>
+                    </a-space>
+                  </a-space>
+                  <div class="avatar-tip">
+                    选择图片后可以继续裁剪，最终会将头像地址直接保存到用户资料中。
+                  </div>
+                </a-space>
+              </a-form-item>
 
-        <a-tab-pane key="password" tab="修改密码">
-          <a-alert
-            type="warning"
-            show-icon
-            style="margin-bottom: 16px"
-            message="修改密码成功后将自动退出登录，请使用新密码重新登录。"
-          />
-          <a-form layout="vertical" :model="passwordForm" @finish="savePassword">
-            <a-form-item
-              label="原密码"
-              name="oldPassword"
-              :rules="[{ required: true, message: '请输入原密码' }]"
-            >
-              <a-input-password
-                v-model:value="passwordForm.oldPassword"
-                placeholder="请输入原密码"
-              />
-            </a-form-item>
-            <a-form-item
-              label="新密码"
-              name="newPassword"
-              :rules="[
-                { required: true, message: '请输入新密码' },
-                { min: 8, message: '新密码长度不能小于 8 位' },
-              ]"
-            >
-              <a-input-password
-                v-model:value="passwordForm.newPassword"
-                placeholder="请输入新密码"
-              />
-            </a-form-item>
-            <a-form-item
-              label="确认新密码"
-              name="checkPassword"
-              :rules="[
-                { required: true, message: '请再次输入新密码' },
-                { min: 8, message: '确认密码长度不能小于 8 位' },
-              ]"
-            >
-              <a-input-password
-                v-model:value="passwordForm.checkPassword"
-                placeholder="请再次输入新密码"
-              />
-            </a-form-item>
-            <a-form-item>
-              <a-button type="primary" html-type="submit" :loading="passwordLoading">
-                修改密码
-              </a-button>
-            </a-form-item>
-          </a-form>
-        </a-tab-pane>
-      </a-tabs>
-    </a-card>
+              <a-form-item label="个人简介" name="userProfile">
+                <a-textarea
+                  v-model:value="profileForm.userProfile"
+                  :rows="4"
+                  :maxlength="500"
+                  show-count
+                  placeholder="请输入个人简介"
+                />
+              </a-form-item>
+
+              <a-form-item>
+                <a-button type="primary" html-type="submit" :loading="profileLoading">
+                  保存资料
+                </a-button>
+              </a-form-item>
+            </a-form>
+          </a-tab-pane>
+
+          <a-tab-pane key="password" tab="修改密码">
+            <a-alert
+              type="warning"
+              show-icon
+              style="margin-bottom: 16px"
+              message="修改密码成功后将自动退出登录，请使用新密码重新登录。"
+            />
+            <a-form layout="vertical" :model="passwordForm" @finish="savePassword">
+              <a-form-item
+                label="原密码"
+                name="oldPassword"
+                :rules="[{ required: true, message: '请输入原密码' }]"
+              >
+                <a-input-password
+                  v-model:value="passwordForm.oldPassword"
+                  placeholder="请输入原密码"
+                />
+              </a-form-item>
+
+              <a-form-item
+                label="新密码"
+                name="newPassword"
+                :rules="[
+                  { required: true, message: '请输入新密码' },
+                  { min: 8, message: '新密码长度不能小于 8 位' },
+                ]"
+              >
+                <a-input-password
+                  v-model:value="passwordForm.newPassword"
+                  placeholder="请输入新密码"
+                />
+              </a-form-item>
+
+              <a-form-item
+                label="确认新密码"
+                name="checkPassword"
+                :rules="[
+                  { required: true, message: '请再次输入新密码' },
+                  { min: 8, message: '确认密码长度不能小于 8 位' },
+                ]"
+              >
+                <a-input-password
+                  v-model:value="passwordForm.checkPassword"
+                  placeholder="请再次输入新密码"
+                />
+              </a-form-item>
+
+              <a-form-item>
+                <a-button type="primary" html-type="submit" :loading="passwordLoading">
+                  修改密码
+                </a-button>
+              </a-form-item>
+            </a-form>
+          </a-tab-pane>
+        </a-tabs>
+      </a-card>
+    </div>
 
     <a-modal
       v-model:open="avatarModalOpen"
@@ -217,7 +223,7 @@ const goVipMall = () => {
   router.push('/user_exchange_vip')
 }
 
-const activeTab = ref('profile')
+const activeTab = ref<'profile' | 'password'>('profile')
 const profileLoading = ref(false)
 const passwordLoading = ref(false)
 const avatarModalOpen = ref(false)
@@ -225,7 +231,7 @@ const cropModalOpen = ref(false)
 const avatarLoading = ref(false)
 const cropUploading = ref(false)
 const cropSourceUrl = ref('')
-const cropperRef = ref()
+const cropperRef = ref<any>()
 const avatarPictures = ref<API.PictureVO[]>([])
 const avatarCurrent = ref(1)
 const avatarPageSize = 12
@@ -279,7 +285,7 @@ const loadAvatarPictures = async (current = 1) => {
       avatarTotal.value = Number(res.data.data.total ?? 0)
       return
     }
-    message.error(`加载头像图片失败：${res.data.message}`)
+    message.error(`加载头像图片失败：${res.data.message ?? '未知错误'}`)
   } finally {
     avatarLoading.value = false
   }
@@ -328,9 +334,10 @@ const confirmCrop = async () => {
       message.success('头像裁剪上传成功')
       return
     }
-    message.error(`头像上传失败：${res.data.message}`)
-  } catch (error: any) {
+    message.error(`头像上传失败：${res.data.message ?? '未知错误'}`)
+  } catch (error) {
     console.error('头像上传失败', error)
+    message.error('头像上传失败，请稍后重试')
   } finally {
     cropUploading.value = false
   }
@@ -355,7 +362,7 @@ const saveProfile = async () => {
       await router.push('/')
       return
     }
-    message.error(`更新失败：${res.data.message}`)
+    message.error(`更新失败：${res.data.message ?? '未知错误'}`)
   } finally {
     profileLoading.value = false
   }
@@ -383,7 +390,7 @@ const savePassword = async () => {
       await router.replace('/user/login')
       return
     }
-    message.error(`修改失败：${res.data.message}`)
+    message.error(`修改失败：${res.data.message ?? '未知错误'}`)
   } finally {
     passwordLoading.value = false
   }
@@ -392,8 +399,14 @@ const savePassword = async () => {
 
 <style scoped>
 #userProfilePage {
+  min-height: 0;
+}
+
+.profile-scroll {
+  width: 100%;
   max-width: 720px;
   margin: 0 auto;
+  padding-bottom: 16px;
 }
 
 .avatar-tip {

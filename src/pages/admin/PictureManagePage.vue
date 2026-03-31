@@ -1,5 +1,5 @@
 ﻿<template>
-  <div id="pictureManagePage">
+  <div id="pictureManagePage" class="page-shell">
     <a-flex justify="space-between">
       <h2>图片管理</h2>
       <a-space>
@@ -47,6 +47,7 @@
     <div style="margin-bottom: 16px" />
 
     <a-table
+      class="data-table"
       row-key="id"
       :columns="columns"
       :data-source="dataList"
@@ -329,6 +330,26 @@ const handleReview = async (record: API.Picture, reviewStatus: number) => {
 </script>
 
 <style scoped>
+#pictureManagePage {
+  min-height: 0;
+}
+
+#pictureManagePage .data-table {
+  flex: 1;
+  min-height: 0;
+}
+
+#pictureManagePage :deep(.ant-spin-nested-loading),
+#pictureManagePage :deep(.ant-spin-container),
+#pictureManagePage :deep(.ant-table-wrapper) {
+  height: 100%;
+  min-height: 0;
+}
+
+#pictureManagePage :deep(.ant-table-wrapper) {
+  overflow: auto;
+}
+
 #pictureManagePage .picture-cell {
   width: 120px;
   overflow: hidden;

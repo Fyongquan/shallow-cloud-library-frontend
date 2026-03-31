@@ -222,7 +222,22 @@ const doMenuClick = ({ key }: { key: string }) => {
 </script>
 
 <style scoped>
+#globalSider {
+  height: 100%;
+}
+
 #globalSider .ant-layout-sider {
   background: none;
+  height: 100%;
+}
+
+#globalSider :deep(.ant-layout-sider-children) {
+  height: 100%;
+}
+
+#globalSider :deep(.ant-menu) {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>

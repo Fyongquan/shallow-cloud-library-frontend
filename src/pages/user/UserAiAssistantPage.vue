@@ -1,6 +1,6 @@
 ﻿<template>
-  <div id="userAiAssistantPage">
-    <a-row :gutter="16">
+  <div id="userAiAssistantPage" class="page-shell">
+    <a-row :gutter="16" class="chat-layout-row">
       <a-col :xs="24" :lg="7">
         <a-card title="会话列表" :bordered="false">
           <template #extra>
@@ -454,16 +454,41 @@ onBeforeUnmount(() => {
 
 <style scoped>
 #userAiAssistantPage {
-  margin-bottom: 20px;
+  min-height: 0;
+}
+
+#userAiAssistantPage .chat-layout-row {
+  height: 100%;
+}
+
+#userAiAssistantPage :deep(.ant-col) {
+  display: flex;
+  min-height: 0;
 }
 
 .chat-card {
-  min-height: 620px;
+  flex: 1;
+  min-height: 0;
+}
+
+#userAiAssistantPage :deep(.ant-card) {
+  flex: 1;
+  min-height: 0;
+}
+
+#userAiAssistantPage :deep(.ant-card-body) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .session-list {
-  max-height: 560px;
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
 
 .session-item {
@@ -517,7 +542,8 @@ onBeforeUnmount(() => {
 }
 
 .message-container {
-  height: 460px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   background: #fafafa;
   border: 1px solid #f0f0f0;

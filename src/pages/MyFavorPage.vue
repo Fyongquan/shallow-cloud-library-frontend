@@ -1,5 +1,5 @@
 <template>
-  <div id="myFavorPage">
+  <div id="myFavorPage" class="page-shell">
     <a-card title="我的收藏" :bordered="false">
       <div class="search-bar">
         <a-input-search
@@ -10,9 +10,9 @@
           @search="doSearch"
         />
       </div>
-      <PictureList :dataList="dataList" :loading="loading" showPublicThumbCount />
+      <PictureList class="picture-list-section" :dataList="dataList" :loading="loading" showPublicThumbCount />
       <a-pagination
-        style="text-align: right"
+        class="page-pagination"
         v-model:current="searchParams.current"
         v-model:pageSize="searchParams.pageSize"
         :total="total"
@@ -99,12 +99,36 @@ onMounted(() => {
 
 <style scoped>
 #myFavorPage {
-  margin-bottom: 16px;
+  min-height: 0;
+}
+
+#myFavorPage :deep(.ant-card) {
+  height: 100%;
+}
+
+#myFavorPage :deep(.ant-card-body) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 #myFavorPage .search-bar {
   max-width: 520px;
   margin: 0 auto 16px;
+}
+
+#myFavorPage .picture-list-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+#myFavorPage .page-pagination {
+  padding-top: 12px;
+  text-align: right;
 }
 </style>
 

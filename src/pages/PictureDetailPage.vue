@@ -1,6 +1,7 @@
 ﻿<template>
-  <div id="pictureDetailPage">
-    <a-row :gutter="[16, 16]">
+  <div id="pictureDetailPage" class="page-shell">
+    <div class="page-scroll picture-detail-scroll">
+      <a-row :gutter="[16, 16]">
       <a-col :sm="24" :md="16" :xl="18">
         <a-card title="图片预览">
           <a-image :src="picture.url" style="max-height: 600px; object-fit: contain" />
@@ -86,7 +87,7 @@
         </a-card>
       </a-col>
     </a-row>
-    <a-card title="互动" class="interaction-card" style="margin-top: 16px">
+      <a-card title="互动" class="interaction-card" style="margin-top: 16px">
       <a-space wrap>
         <a-button :loading="thumbLoading" @click="toggleThumb">
           <template #icon>
@@ -166,7 +167,8 @@
           @change="onCommentPageChange"
         />
       </div>
-    </a-card>
+      </a-card>
+    </div>
     <ShareModal ref="shareModalRef" :link="shareLink" :expire-time="shareExpireTime" />
   </div>
 </template>
@@ -744,7 +746,11 @@ onUnmounted(() => {
 
 <style scoped>
 #pictureDetailPage {
-  margin-bottom: 16px;
+  min-height: 0;
+}
+
+.picture-detail-scroll {
+  padding-bottom: 16px;
 }
 
 .color-chip {

@@ -1,5 +1,5 @@
 ﻿<template>
-  <div id="spaceManagePage">
+  <div id="spaceManagePage" class="page-shell">
     <a-flex justify="space-between">
       <h2>空间管理</h2>
       <a-space>
@@ -44,6 +44,7 @@
     <div style="margin-bottom: 16px" />
 
     <a-table
+      class="data-table"
       row-key="id"
       :columns="columns"
       :data-source="dataList"
@@ -215,4 +216,26 @@ const doDelete = async (id?: string | number) => {
     message.error('删除失败')
   }
 }
-</script>
+ </script>
+
+<style scoped>
+#spaceManagePage {
+  min-height: 0;
+}
+
+#spaceManagePage .data-table {
+  flex: 1;
+  min-height: 0;
+}
+
+#spaceManagePage :deep(.ant-spin-nested-loading),
+#spaceManagePage :deep(.ant-spin-container),
+#spaceManagePage :deep(.ant-table-wrapper) {
+  height: 100%;
+  min-height: 0;
+}
+
+#spaceManagePage :deep(.ant-table-wrapper) {
+  overflow: auto;
+}
+</style>

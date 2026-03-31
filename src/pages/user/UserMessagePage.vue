@@ -1,5 +1,5 @@
 <template>
-  <div id="userMessagePage">
+  <div id="userMessagePage" class="page-shell">
     <a-card title="消息中心" :bordered="false">
       <a-tabs v-model:activeKey="activeTab" @change="onTabChange">
         <a-tab-pane key="interaction" tab="互动消息" />
@@ -241,7 +241,31 @@ onMounted(() => {
 
 <style scoped>
 #userMessagePage {
-  margin-bottom: 20px;
+  min-height: 0;
+}
+
+#userMessagePage :deep(.ant-card) {
+  height: 100%;
+}
+
+#userMessagePage :deep(.ant-card-body) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#userMessagePage :deep(.ant-spin-nested-loading),
+#userMessagePage :deep(.ant-spin-container),
+#userMessagePage :deep(.ant-list) {
+  flex: 1;
+  min-height: 0;
+}
+
+#userMessagePage :deep(.ant-list) {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
 
 .toolbar {

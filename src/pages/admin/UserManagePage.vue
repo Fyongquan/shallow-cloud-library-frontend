@@ -1,5 +1,5 @@
 ﻿<template>
-  <div id="userManagePage">
+  <div id="userManagePage" class="page-shell">
     <a-form layout="inline" :model="searchParams" @finish="doSearch">
       <a-form-item label="账号">
         <a-input v-model:value="searchParams.userAccount" placeholder="输入账号" allow-clear />
@@ -15,6 +15,7 @@
     <div style="margin-bottom: 16px" />
 
     <a-table
+      class="data-table"
       row-key="id"
       :columns="columns"
       :data-source="dataList"
@@ -145,4 +146,26 @@ const doDelete = async (id?: string | number) => {
     message.error('删除失败')
   }
 }
-</script>
+ </script>
+
+<style scoped>
+#userManagePage {
+  min-height: 0;
+}
+
+#userManagePage .data-table {
+  flex: 1;
+  min-height: 0;
+}
+
+#userManagePage :deep(.ant-spin-nested-loading),
+#userManagePage :deep(.ant-spin-container),
+#userManagePage :deep(.ant-table-wrapper) {
+  height: 100%;
+  min-height: 0;
+}
+
+#userManagePage :deep(.ant-table-wrapper) {
+  overflow: auto;
+}
+</style>

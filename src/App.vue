@@ -25,4 +25,12 @@ import BasicLayout from '@/layouts/BasicLayout.vue'
 // })
 </script>
 
-<style scoped></style>
+<style>
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+</style>

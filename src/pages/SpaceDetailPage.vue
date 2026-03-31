@@ -1,5 +1,5 @@
 ﻿<template>
-  <div id="spaceDetailPage">
+  <div id="spaceDetailPage" class="page-shell">
     <a-flex justify="space-between" align="start" wrap="wrap" :gap="16">
       <h2>{{ space.spaceName }}（{{ SPACE_TYPE_MAP[space.spaceType ?? 0] }}）</h2>
       <a-space size="middle" wrap>
@@ -76,6 +76,7 @@
     </a-checkbox>
 
     <PictureList
+      class="picture-list-section"
       :dataList="dataList"
       :loading="loading"
       :showOp="true"
@@ -86,7 +87,7 @@
     />
 
     <a-pagination
-      style="text-align: right"
+      class="page-pagination"
       v-model:current="searchParams.current"
       v-model:pageSize="searchParams.pageSize"
       :total="total"
@@ -314,6 +315,19 @@ watch(
 
 <style scoped>
 #spaceDetailPage {
-  margin-bottom: 16px;
+  min-height: 0;
+}
+
+#spaceDetailPage .picture-list-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+#spaceDetailPage .page-pagination {
+  padding-top: 12px;
+  text-align: right;
 }
 </style>
