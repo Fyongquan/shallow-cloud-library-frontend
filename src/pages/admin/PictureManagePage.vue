@@ -80,7 +80,7 @@
 
         <template v-else-if="column.dataIndex === 'reviewMessage'">
           <template v-if="canReviewRecord(record)">
-            <div>审核状态：{{ PIC_REVIEW_STATUS_MAP[record.reviewStatus] }}</div>
+            <div>审核状态：{{ PIC_REVIEW_STATUS_MAP[Number(record.reviewStatus)] }}</div>
             <div>审核信息：{{ record.reviewMessage || '-' }}</div>
             <div>审核人：{{ record.reviewerId || '-' }}</div>
             <div v-if="record.reviewTime">

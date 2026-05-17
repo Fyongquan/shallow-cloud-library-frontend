@@ -355,14 +355,15 @@ const confirmCrop = async () => {
     })
     const file = new File([blob], 'avatar.png', { type: blob.type || 'image/png' })
     const res = await uploadUserAvatarUsingPost(file)
-    if (res.data.code === 200 && res.data.data) {
-      profileForm.userAvatar = res.data.data
+    const data = res.data as API.BaseResponseString_
+    if (data.code === 200 && data.data) {
+      profileForm.userAvatar = data.data
       cropModalOpen.value = false
       cropSourceUrl.value = ''
       message.success('头像裁剪上传成功')
       return
     }
-    message.error(`头像上传失败：${res.data.message ?? '未知错误'}`)
+    message.error(`头像上传失败：${data.message ?? '未知错误'}`)
   } catch (error) {
     console.error('头像上传失败', error)
     message.error('头像上传失败，请稍后重试')

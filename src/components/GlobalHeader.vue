@@ -124,7 +124,8 @@ const originItems = [
 
 const filterMenus = (menus = [] as MenuProps['items']) => {
   return menus?.filter((menu) => {
-    if (menu?.key?.startsWith('/admin')) {
+    const menuKey = typeof menu?.key === 'string' ? menu.key : ''
+    if (menuKey.startsWith('/admin')) {
       const loginUser = loginUserStore.loginUser
       if (!loginUser || loginUser.userRole !== 'admin') {
         return false

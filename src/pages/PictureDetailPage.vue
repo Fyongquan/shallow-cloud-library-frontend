@@ -169,7 +169,7 @@
       </div>
       </a-card>
     </div>
-    <ShareModal ref="shareModalRef" :link="shareLink" :expire-time="shareExpireTime" />
+    <ShareModal title="分享图片" ref="shareModalRef" :link="shareLink" :expire-time="shareExpireTime" />
   </div>
 </template>
 
@@ -318,7 +318,7 @@ const doShare = async () => {
     return
   }
   const res = await createPictureShareUsingPost({
-    pictureId: picture.value.id,
+    pictureId: Number(picture.value.id),
   })
   if (res.data.code !== 200) {
     return

@@ -37,22 +37,23 @@ const loading = ref(false)
 const handleUpload = async ({ file }: any) => {
   loading.value = true
   try {
-    const params: API.PictureUploadRequest = {}
+    const params: API.uploadPictureUsingPOSTParams = {}
     const pictureId = toIdString(props.picture?.id)
     const spaceId = toIdString(props.spaceId)
     if (pictureId) {
-      params.id = pictureId as any
+      params.id = Number(pictureId)
     }
     if (spaceId) {
-      params.spaceId = spaceId as any
+      params.spaceId = Number(spaceId)
     }
     params.publishToPublic = props.publishToPublic
     const res = await uploadPictureUsingPost(params, {}, file)
-    if (res.data.code === 200 && res.data.data) {
-      props.onSuccess?.(res.data.data)
+    const data = res.data as API.BaseResponsePictureVO_
+    if (data.code === 200 && data.data) {
+      props.onSuccess?.(data.data)
       return
     }
-    message.error('图片上传失败：' + res.data.message)
+    message.error('图片上传失败：' + data.message)
   } catch (error: any) {
     console.error('upload picture error', error)
   } finally {
@@ -60,7 +61,7 @@ const handleUpload = async ({ file }: any) => {
   }
 }
 
-const beforeUpload = (file: UploadProps['fileList'][number]) => {
+const beforeUpload: UploadProps['beforeUpload'] = (file) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
     message.error('只能上传 JPG 或 PNG 格式的图片')

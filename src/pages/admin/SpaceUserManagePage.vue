@@ -41,7 +41,7 @@
           <a-select
             v-model:value="record.spaceRole"
             :options="SPACE_ROLE_OPTIONS"
-            @change="(value) => editSpaceRole(value, record)"
+            @change="(value: string) => editSpaceRole(value, record)"
           />
         </template>
         <template v-else-if="column.dataIndex === 'createTime'">

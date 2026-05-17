@@ -42,7 +42,7 @@ const fetchData = async () => {
       queryPublic: props.queryPublic,
       spaceId: toIdString(props.spaceId) as any,
       topN: props.topN,
-    })
+    } as any)
     if (res.data.code === 200 && res.data.data) {
       dataList.value = res.data.data ?? []
     } else {

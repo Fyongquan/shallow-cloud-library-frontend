@@ -61,7 +61,7 @@
         </a-list-item>
       </template>
     </a-list>
-    <ShareModal ref="shareModalRef" :link="shareLink" :expire-time="shareExpireTime" />
+    <ShareModal title="分享图片" ref="shareModalRef" :link="shareLink" :expire-time="shareExpireTime" />
   </div>
 </template>
 
@@ -120,7 +120,7 @@ const doClickPicture = (picture: API.PictureVO) => {
   })
 }
 
-const doSearch = (picture, e) => {
+const doSearch = (picture: API.PictureVO, e: Event) => {
   e.stopPropagation()
   const pictureId = toIdString(picture.id)
   if (!pictureId) {
@@ -135,7 +135,7 @@ const doSearch = (picture, e) => {
   })
 }
 
-const doEdit = (picture, e) => {
+const doEdit = (picture: API.PictureVO, e: Event) => {
   e.stopPropagation()
   const pictureId = toIdString(picture.id)
   if (!pictureId) {
@@ -152,7 +152,7 @@ const doEdit = (picture, e) => {
   })
 }
 
-const doDelete = async (picture, e) => {
+const doDelete = async (picture: API.PictureVO, e: Event) => {
   e.stopPropagation()
   const id = toIdString(picture.id)
   if (!id) {
@@ -169,7 +169,7 @@ const doDelete = async (picture, e) => {
 }
 
 const shareModalRef = ref()
-const shareLink = ref<string>()
+const shareLink = ref('')
 const shareExpireTime = ref<string>()
 
 const formatExpireTime = (expireTime?: string) => {
@@ -179,7 +179,7 @@ const formatExpireTime = (expireTime?: string) => {
   return new Date(expireTime).toLocaleString()
 }
 
-const doShare = async (picture, e) => {
+const doShare = async (picture: API.PictureVO, e: Event) => {
   e.stopPropagation()
   const pictureId = toIdString(picture.id)
   if (!pictureId) {
@@ -187,7 +187,7 @@ const doShare = async (picture, e) => {
     return
   }
   const res = await createPictureShareUsingPost({
-    pictureId,
+    pictureId: Number(pictureId),
   })
   if (res.data.code !== 200 || !res.data.data?.sharePath) {
     message.error(res.data.message ?? '生成分享链接失败')

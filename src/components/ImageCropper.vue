@@ -167,22 +167,23 @@ const handleConfirm = () => {
 const handleUpload = async (file: File) => {
   loading.value = true
   try {
-    const params: API.PictureUploadRequest = {}
+    const params: API.uploadPictureUsingPOSTParams = {}
     const pictureId = toIdString(props.picture?.id)
     const spaceId = toIdString(props.spaceId)
     if (pictureId) {
-      params.id = pictureId as any
+      params.id = Number(pictureId)
     }
     if (spaceId) {
-      params.spaceId = spaceId as any
+      params.spaceId = Number(spaceId)
     }
     const res = await uploadPictureUsingPost(params, {}, file)
-    if (res.data.code === 200 && res.data.data) {
+    const data = res.data as API.BaseResponsePictureVO_
+    if (data.code === 200 && data.data) {
       message.success('图片上传成功')
-      props.onSuccess?.(res.data.data)
+      props.onSuccess?.(data.data)
       closeModal()
     } else {
-      message.error(`图片上传失败：${res.data.message}`)
+      message.error(`图片上传失败：${data.message}`)
     }
   } catch (error: any) {
     console.error('图片上传失败', error)

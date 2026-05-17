@@ -55,7 +55,10 @@ import {
 import { formatSize } from '../utils'
 
 const space = ref<API.SpaceVO>()
-const spaceForm = reactive<API.SpaceAddRequest | API.SpaceEditRequest>({})
+type SpaceFormState = Partial<API.SpaceAddRequest & API.SpaceEditRequest> & {
+  spaceLevel?: number
+}
+const spaceForm = reactive<SpaceFormState>({})
 const loading = ref(false)
 
 const route = useRoute()
@@ -126,8 +129,12 @@ const getOldSpace = async () => {
   // 获取到 id
   const id = route.query?.id
   if (id) {
+    const normalizedId = Array.isArray(id) ? id[0] : id
+    if (normalizedId == null) {
+      return
+    }
     const res = await getSpaceVoByIdUsingGet({
-      id,
+      id: normalizedId,
     })
     if (res.data.code === 200 && res.data.data) {
       const data = res.data.data
