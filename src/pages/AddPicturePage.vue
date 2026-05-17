@@ -1,6 +1,8 @@
 ﻿<template>
-  <div id="addPicturePage">
-    <h2 style="margin-bottom: 16px">
+  <div class="page-shell">
+    <div class="page-scroll">
+      <div id="addPicturePage">
+        <h2 style="margin-bottom: 16px">
       {{ isEditMode ? '修改图片' : '上传图片' }}
     </h2>
     <a-typography-paragraph v-if="spaceId" type="secondary">
@@ -111,12 +113,14 @@
           allow-clear
         />
       </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit" style="width: 100%">
-          {{ isEditMode ? '保存修改' : '创建' }}
-        </a-button>
-      </a-form-item>
-    </a-form>
+          <a-form-item>
+            <a-button type="primary" html-type="submit" style="width: 100%">
+              {{ isEditMode ? '保存修改' : '创建' }}
+            </a-button>
+          </a-form-item>
+        </a-form>
+      </div>
+    </div>
   </div>
 </template>
 

@@ -256,16 +256,44 @@ const syncProfileForm = () => {
   profileForm.userProfile = loginUser.userProfile ?? ''
 }
 
+const fallbackCopyText = (text: string) => {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', 'readonly')
+  textarea.style.position = 'fixed'
+  textarea.style.top = '-9999px'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.select()
+  textarea.setSelectionRange(0, text.length)
+  const copied = document.execCommand('copy')
+  document.body.removeChild(textarea)
+  return copied
+}
+
 const copyUserId = async () => {
   const userId = loginUserStore.loginUser.id
   if (!userId) {
     message.warning('当前暂无可复制的用户 ID')
     return
   }
+  const text = String(userId)
   try {
-    await navigator.clipboard.writeText(String(userId))
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else if (!fallbackCopyText(text)) {
+      throw new Error('copy failed')
+    }
     message.success('用户 ID 已复制')
   } catch {
+    try {
+      if (fallbackCopyText(text)) {
+        message.success('用户 ID 已复制')
+        return
+      }
+    } catch {
+      // ignore fallback error and show unified failure message below
+    }
     message.error('复制失败，请手动记录用户 ID')
   }
 }
