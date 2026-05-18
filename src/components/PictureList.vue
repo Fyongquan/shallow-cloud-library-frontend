@@ -187,7 +187,7 @@ const doShare = async (picture: API.PictureVO, e: Event) => {
     return
   }
   const res = await createPictureShareUsingPost({
-    pictureId: Number(pictureId),
+    pictureId,
   })
   if (res.data.code !== 200 || !res.data.data?.sharePath) {
     message.error(res.data.message ?? '生成分享链接失败')

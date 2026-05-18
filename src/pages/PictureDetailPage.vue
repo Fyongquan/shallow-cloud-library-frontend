@@ -317,8 +317,13 @@ const doShare = async () => {
   if (!picture.value.id) {
     return
   }
+  const pictureId = toIdString(picture.value.id)
+  if (!pictureId) {
+    message.error('图片 id 无效')
+    return
+  }
   const res = await createPictureShareUsingPost({
-    pictureId: Number(picture.value.id),
+    pictureId,
   })
   if (res.data.code !== 200) {
     return

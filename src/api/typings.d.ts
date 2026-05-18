@@ -515,7 +515,7 @@ declare namespace API {
 
   type PictureShareRequest = {
     expireDays?: number
-    pictureId?: number
+    pictureId?: number | string
   }
 
   type PictureShareVO = {
