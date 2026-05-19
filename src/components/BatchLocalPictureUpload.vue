@@ -46,6 +46,13 @@ const props = defineProps<Props>()
 
 const fileList = ref<UploadFile[]>([])
 const uploading = ref(false)
+const BATCH_UPLOAD_TIMEOUT_MS = 300000
+
+const isTimeoutError = (error: any) => {
+  const code = String(error?.code ?? '')
+  const messageText = String(error?.message ?? '').toLowerCase()
+  return code === 'ECONNABORTED' || messageText.includes('timeout')
+}
 
 const noopRequest = ({ onSuccess }: any) => {
   onSuccess?.({})
@@ -87,6 +94,9 @@ const handleBatchUpload = async () => {
       },
       {},
       files,
+      {
+        timeout: BATCH_UPLOAD_TIMEOUT_MS,
+      },
     )
     if (res.data.code === 200) {
       const successCount = Number(res.data.data ?? 0)
@@ -102,7 +112,12 @@ const handleBatchUpload = async () => {
     }
     message.error(res.data.message || '批量上传失败')
   } catch (error) {
+    if (isTimeoutError(error)) {
+      message.error('批量上传超时。云服务器带宽较小，请稍后重试、减少单次上传数量，或压缩图片后再上传。')
+      return
+    }
     console.error('batch upload picture error', error)
+    message.error('批量上传失败，请稍后重试')
   } finally {
     uploading.value = false
   }

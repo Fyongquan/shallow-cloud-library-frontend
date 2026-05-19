@@ -33,6 +33,13 @@ interface Props {
 
 const props = defineProps<Props>()
 const loading = ref(false)
+const UPLOAD_TIMEOUT_MS = 180000
+
+const isTimeoutError = (error: any) => {
+  const code = String(error?.code ?? '')
+  const messageText = String(error?.message ?? '').toLowerCase()
+  return code === 'ECONNABORTED' || messageText.includes('timeout')
+}
 
 const handleUpload = async ({ file }: any) => {
   loading.value = true
@@ -47,7 +54,9 @@ const handleUpload = async ({ file }: any) => {
       params.spaceId = spaceId
     }
     params.publishToPublic = props.publishToPublic
-    const res = await uploadPictureUsingPost(params, {}, file)
+    const res = await uploadPictureUsingPost(params, {}, file, {
+      timeout: UPLOAD_TIMEOUT_MS,
+    })
     const data = res.data as API.BaseResponsePictureVO_
     if (data.code === 200 && data.data) {
       props.onSuccess?.(data.data)
@@ -55,7 +64,12 @@ const handleUpload = async ({ file }: any) => {
     }
     message.error('图片上传失败：' + data.message)
   } catch (error: any) {
+    if (isTimeoutError(error)) {
+      message.error('图片上传超时。云服务器带宽较小，请稍后重试或减少单次上传数量。')
+      return
+    }
     console.error('upload picture error', error)
+    message.error('图片上传失败，请稍后重试')
   } finally {
     loading.value = false
   }

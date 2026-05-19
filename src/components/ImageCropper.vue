@@ -97,6 +97,7 @@ const props = defineProps<Props>()
 
 const visible = ref(false)
 const loading = ref(false)
+const UPLOAD_TIMEOUT_MS = 180000
 const cropperRef = ref()
 const onlineUsers = ref<API.UserVO[]>([])
 const editingUser = ref<API.UserVO>()
@@ -122,6 +123,12 @@ const isCurrentUser = (user?: API.UserVO) => {
     return false
   }
   return String(user.id) === String(loginUser.id)
+}
+
+const isTimeoutError = (error: any) => {
+  const code = String(error?.code ?? '')
+  const messageText = String(error?.message ?? '').toLowerCase()
+  return code === 'ECONNABORTED' || messageText.includes('timeout')
 }
 
 const applyScale = (step: number) => {
@@ -176,7 +183,9 @@ const handleUpload = async (file: File) => {
     if (spaceId) {
       params.spaceId = spaceId
     }
-    const res = await uploadPictureUsingPost(params, {}, file)
+    const res = await uploadPictureUsingPost(params, {}, file, {
+      timeout: UPLOAD_TIMEOUT_MS,
+    })
     const data = res.data as API.BaseResponsePictureVO_
     if (data.code === 200 && data.data) {
       message.success('图片上传成功')
@@ -186,7 +195,12 @@ const handleUpload = async (file: File) => {
       message.error(`图片上传失败：${data.message}`)
     }
   } catch (error: any) {
+    if (isTimeoutError(error)) {
+      message.error('图片上传超时。云服务器带宽较小，请稍后重试。')
+      return
+    }
     console.error('图片上传失败', error)
+    message.error('图片上传失败，请稍后重试')
   } finally {
     loading.value = false
   }
