@@ -41,10 +41,10 @@ const handleUpload = async ({ file }: any) => {
     const pictureId = toIdString(props.picture?.id)
     const spaceId = toIdString(props.spaceId)
     if (pictureId) {
-      params.id = Number(pictureId)
+      params.id = pictureId
     }
     if (spaceId) {
-      params.spaceId = Number(spaceId)
+      params.spaceId = spaceId
     }
     params.publishToPublic = props.publishToPublic
     const res = await uploadPictureUsingPost(params, {}, file)

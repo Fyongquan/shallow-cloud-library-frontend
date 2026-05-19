@@ -302,7 +302,7 @@ declare namespace API {
   type LoginUserVO = {
     createTime?: string
     editTime?: string
-    id?: number
+    id?: string | number
     updateTime?: string
     userAccount?: string
     userAvatar?: string
@@ -425,7 +425,7 @@ declare namespace API {
     category?: string
     createTime?: string
     editTime?: string
-    id?: number
+    id?: string | number
     introduction?: string
     isDelete?: number
     name?: string
@@ -440,25 +440,25 @@ declare namespace API {
     reviewTime?: string
     reviewerId?: number
     publishToPublic?: number
-    spaceId?: number
+    spaceId?: string | number
     tags?: string
     thumbnailUrl?: string
     updateTime?: string
     url?: string
-    userId?: number
+    userId?: string | number
   }
 
   type PictureEditByBatchRequest = {
     category?: string
     nameRule?: string
-    pictureIdList?: number[]
-    spaceId?: number
+    pictureIdList?: Array<string | number>
+    spaceId?: string | number
     tags?: string[]
   }
 
   type PictureEditRequest = {
     category?: string
-    id?: number
+    id?: string | number
     introduction?: string
     name?: string
     publishToPublic?: boolean
@@ -466,7 +466,7 @@ declare namespace API {
   }
 
   type PictureDownloadRequest = {
-    pictureId?: number
+    pictureId?: string | number
   }
 
   type PictureQueryRequest = {
@@ -475,7 +475,7 @@ declare namespace API {
     endEditTime?: string
     favorOnly?: boolean
     favorUserId?: number
-    id?: number
+    id?: string | number
     introduction?: string
     name?: string
     nullSpaceId?: boolean
@@ -492,18 +492,18 @@ declare namespace API {
     reviewStatus?: number
     reviewTime?: string
     reviewerId?: number
-    searchSpaceId?: number
+    searchSpaceId?: string | number
     searchText?: string
     sortField?: string
     sortOrder?: string
-    spaceId?: number
+    spaceId?: string | number
     startEditTime?: string
     tags?: string[]
-    userId?: number
+    userId?: string | number
   }
 
   type PictureReviewRequest = {
-    id?: number
+    id?: string | number
     reviewMessage?: string
     reviewStatus?: number
   }
@@ -520,14 +520,14 @@ declare namespace API {
 
   type PictureShareVO = {
     expireTime?: string
-    pictureId?: number
+    pictureId?: string | number
     shareCode?: string
     sharePath?: string
   }
 
   type PictureUpdateRequest = {
     category?: string
-    id?: number
+    id?: string | number
     introduction?: string
     name?: string
     tags?: string[]
@@ -603,7 +603,7 @@ declare namespace API {
 
   type SearchPictureByColorRequest = {
     picColor?: string
-    spaceId?: number
+    spaceId?: string | number
   }
 
   type SearchPictureByPictureRequest = {
@@ -613,7 +613,7 @@ declare namespace API {
   type Space = {
     createTime?: string
     editTime?: string
-    id?: number
+    id?: string | number
     isDelete?: number
     maxCount?: number
     maxSize?: number
@@ -623,7 +623,7 @@ declare namespace API {
     totalCount?: number
     totalSize?: number
     updateTime?: string
-    userId?: number
+    userId?: string | number
   }
 
   type SpaceAddRequest = {
@@ -635,7 +635,7 @@ declare namespace API {
   type SpaceCategoryAnalyzeRequest = {
     queryAll?: boolean
     queryPublic?: boolean
-    spaceId?: number
+    spaceId?: string | number
   }
 
   type SpaceCategoryAnalyzeResponse = {
@@ -645,7 +645,7 @@ declare namespace API {
   }
 
   type SpaceEditRequest = {
-    id?: number
+    id?: string | number
     spaceName?: string
   }
 
@@ -658,14 +658,14 @@ declare namespace API {
 
   type SpaceQueryRequest = {
     current?: number
-    id?: number
+    id?: string | number
     pageSize?: number
     sortField?: string
     sortOrder?: string
     spaceLevel?: number
     spaceName?: string
     spaceType?: number
-    userId?: number
+    userId?: string | number
   }
 
   type SpaceRankAnalyzeRequest = {
@@ -675,7 +675,7 @@ declare namespace API {
   type SpaceSizeAnalyzeRequest = {
     queryAll?: boolean
     queryPublic?: boolean
-    spaceId?: number
+    spaceId?: string | number
   }
 
   type SpaceSizeAnalyzeResponse = {
@@ -686,7 +686,7 @@ declare namespace API {
   type SpaceTagAnalyzeRequest = {
     queryAll?: boolean
     queryPublic?: boolean
-    spaceId?: number
+    spaceId?: string | number
   }
 
   type SpaceTagAnalyzeResponse = {
@@ -695,7 +695,7 @@ declare namespace API {
   }
 
   type SpaceUpdateRequest = {
-    id?: number
+    id?: string | number
     maxCount?: number
     maxSize?: number
     spaceLevel?: number
@@ -703,14 +703,14 @@ declare namespace API {
   }
 
   type SpaceUpgradeRequest = {
-    id?: number
+    id?: string | number
     targetSpaceLevel?: number
   }
 
   type SpaceUsageAnalyzeRequest = {
     queryAll?: boolean
     queryPublic?: boolean
-    spaceId?: number
+    spaceId?: string | number
   }
 
   type SpaceUsageAnalyzeResponse = {
@@ -724,25 +724,25 @@ declare namespace API {
 
   type SpaceUser = {
     createTime?: string
-    id?: number
-    spaceId?: number
+    id?: string | number
+    spaceId?: string | number
     spaceRole?: string
     updateTime?: string
-    userId?: number
+    userId?: string | number
   }
 
   type SpaceUserAddRequest = {
-    spaceId?: number
+    spaceId?: string | number
     spaceRole?: string
-    userId?: number
+    userId?: string | number
   }
 
   type SpaceUserAnalyzeRequest = {
     queryAll?: boolean
     queryPublic?: boolean
-    spaceId?: number
+    spaceId?: string | number
     timeDimension?: string
-    userId?: number
+    userId?: string | number
   }
 
   type SpaceUserAnalyzeResponse = {
@@ -751,32 +751,32 @@ declare namespace API {
   }
 
   type SpaceUserEditRequest = {
-    id?: number
+    id?: string | number
     spaceRole?: string
   }
 
   type SpaceUserQueryRequest = {
-    id?: number
-    spaceId?: number
+    id?: string | number
+    spaceId?: string | number
     spaceRole?: string
-    userId?: number
+    userId?: string | number
   }
 
   type SpaceUserVO = {
     createTime?: string
-    id?: number
+    id?: string | number
     space?: SpaceVO
-    spaceId?: number
+    spaceId?: string | number
     spaceRole?: string
     updateTime?: string
     user?: UserVO
-    userId?: number
+    userId?: string | number
   }
 
   type SpaceVO = {
     createTime?: string
     editTime?: string
-    id?: number
+    id?: string | number
     maxCount?: number
     maxSize?: number
     permissionList?: string[]
@@ -787,7 +787,7 @@ declare namespace API {
     totalSize?: number
     updateTime?: string
     user?: UserVO
-    userId?: number
+    userId?: string | number
   }
 
   type TaskMetrics = {
@@ -803,16 +803,24 @@ declare namespace API {
 
   type uploadPictureUsingPOSTParams = {
     fileUrl?: string
-    id?: number
+    id?: string | number
     picName?: string
     publishToPublic?: boolean
-    spaceId?: number
+    spaceId?: string | number
+  }
+
+  type uploadPictureByBatchUsingPOSTParams = {
+    fileUrl?: string
+    id?: string | number
+    picName?: string
+    publishToPublic?: boolean
+    spaceId?: string | number
   }
 
   type User = {
     createTime?: string
     editTime?: string
-    id?: number
+    id?: string | number
     isDelete?: number
     updateTime?: string
     userAccount?: string
@@ -842,7 +850,7 @@ declare namespace API {
 
   type UserQueryRequest = {
     current?: number
-    id?: number
+    id?: string | number
     pageSize?: number
     sortField?: string
     sortOrder?: string
@@ -871,7 +879,7 @@ declare namespace API {
   }
 
   type UserUpdateRequest = {
-    id?: number
+    id?: string | number
     userAvatar?: string
     userName?: string
     userProfile?: string
@@ -879,7 +887,7 @@ declare namespace API {
   }
 
   type UserScoreInfoVO = {
-    userId?: number
+    userId?: string | number
     userRole?: string
     userScore?: number
     vipExpireTime?: string
@@ -888,7 +896,7 @@ declare namespace API {
   type UserScoreRecordVO = {
     createTime?: string
     description?: string
-    id?: number
+    id?: string | number
     scoreAfter?: number
     scoreChange?: number
   }
@@ -903,7 +911,7 @@ declare namespace API {
 
   type UserVO = {
     createTime?: string
-    id?: number
+    id?: string | number
     userAccount?: string
     userAvatar?: string
     userName?: string

@@ -53,6 +53,12 @@
           :onSuccess="onSuccess"
         />
       </a-tab-pane>
+      <a-tab-pane v-if="!isEditMode" key="batch" tab="批量上传" force-render>
+        <BatchLocalPictureUpload
+          :spaceId="spaceId"
+          :publishToPublic="Boolean(pictureForm.publishToPublic)"
+        />
+      </a-tab-pane>
     </a-tabs>
 
     <div v-if="picture && canEditCurrentPicture" class="edit-bar">
@@ -126,6 +132,7 @@
 
 <script setup lang="ts">
 import PictureUpload from '@/components/PictureUpload.vue'
+import BatchLocalPictureUpload from '@/components/BatchLocalPictureUpload.vue'
 import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
 import ImageOutPainting from '@/components/ImageOutPainting.vue'
@@ -149,7 +156,7 @@ const picture = ref<API.PictureVO>()
 const pictureForm = reactive<API.PictureEditRequest>({
   publishToPublic: route.query.syncPublic === '1',
 })
-const uploadType = ref<'file' | 'url'>('file')
+const uploadType = ref<'file' | 'url' | 'batch'>('file')
 const isEditMode = computed(() => Boolean(toIdString(route.query?.id)))
 const spaceId = computed(() => toIdString(route.query?.spaceId))
 const fromPath = computed(() => route.query?.from as string | undefined)

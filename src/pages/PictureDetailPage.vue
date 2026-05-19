@@ -418,13 +418,13 @@ const toTimestamp = (value?: string) => {
   return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
-const toNumericId = (id?: number | string) => {
-  const idStr = toIdString(id)
-  if (!idStr) {
-    return 0
+const compareId = (left?: number | string, right?: number | string) => {
+  const leftId = toIdString(left) ?? ''
+  const rightId = toIdString(right) ?? ''
+  if (leftId.length !== rightId.length) {
+    return leftId.length - rightId.length
   }
-  const value = Number(idStr)
-  return Number.isNaN(value) ? 0 : value
+  return leftId.localeCompare(rightId)
 }
 
 const flattenCommentChildren = (children?: PictureCommentVO[]): PictureCommentVO[] => {
@@ -450,7 +450,7 @@ const flattenCommentChildren = (children?: PictureCommentVO[]): PictureCommentVO
     if (timeDiff !== 0) {
       return timeDiff
     }
-    return toNumericId(a.id) - toNumericId(b.id)
+    return compareId(a.id, b.id)
   })
 }
 

@@ -68,7 +68,7 @@ const fetchData = async () => {
     queryPublic: props.queryPublic,
     spaceId: toIdString(props.spaceId) as any,
     timeDimension: timeDimension.value,
-    userId: userId.value ? Number(userId.value) : undefined,
+    userId: userId.value || undefined,
   })
   if (res.data.code === 200 && res.data.data) {
     dataList.value = res.data.data ?? []

@@ -4,7 +4,7 @@
       <h2>图片管理</h2>
       <a-space>
         <a-button type="primary" href="/add_picture">+ 创建图片</a-button>
-        <a-button type="primary" href="/add_picture/batch" ghost>+ 批量创建图片</a-button>
+        <a-button type="primary" href="/add_picture/batch" ghost>+ 批量上传图片</a-button>
       </a-space>
     </a-flex>
 
