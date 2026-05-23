@@ -19,7 +19,12 @@
         : `${wsProtocol}://${window.location.host}`
     const url = `${wsBaseUrl}/api/ws/picture/edit?pictureId=${this.pictureId}`
 
-    this.socket = new WebSocket(url)
+    try {
+      this.socket = new WebSocket(url)
+    } catch (error) {
+      this.triggerEvent('error', error)
+      return
+    }
     this.socket.binaryType = 'blob'
 
     this.socket.onopen = () => {

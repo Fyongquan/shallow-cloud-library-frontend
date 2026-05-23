@@ -101,6 +101,7 @@ const UPLOAD_TIMEOUT_MS = 180000
 const cropperRef = ref()
 const onlineUsers = ref<API.UserVO[]>([])
 const editingUser = ref<API.UserVO>()
+const websocketErrorNotified = ref(false)
 
 const loginUserStore = useLoginUserStore()
 const loginUser = loginUserStore.loginUser
@@ -209,6 +210,7 @@ const handleUpload = async (file: File) => {
 const resetCollabState = () => {
   onlineUsers.value = []
   editingUser.value = undefined
+  websocketErrorNotified.value = false
 }
 
 const cleanupWebsocket = () => {
@@ -226,7 +228,6 @@ const initWebsocket = () => {
   }
   cleanupWebsocket()
   websocket = new PictureEditWebSocket(pictureId)
-  websocket.connect()
 
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.INFO, (msg) => {
     if (msg?.message) {
@@ -277,6 +278,18 @@ const initWebsocket = () => {
     }
     editingUser.value = undefined
   })
+
+  websocket.on('error', () => {
+    notifyWebsocketError()
+  })
+
+  websocket.on('close', (event) => {
+    if (event?.code !== 1000) {
+      notifyWebsocketError()
+    }
+  })
+
+  websocket.connect()
 }
 
 watch(
@@ -312,6 +325,16 @@ const exitEdit = () => {
   websocket?.sendMessage({
     type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.EXIT_EDIT,
   })
+}
+
+const notifyWebsocketError = () => {
+  if (websocketErrorNotified.value || !visible.value) {
+    return
+  }
+  websocketErrorNotified.value = true
+  message.warning(
+    '\u534f\u540c\u7f16\u8f91\u8fde\u63a5\u5931\u8d25\uff0c\u8bf7\u786e\u8ba4\u5df2\u767b\u5f55\u4e14\u5177\u6709\u56fe\u7247\u7f16\u8f91\u6743\u9650',
+  )
 }
 
 const syncEditAction = (action: string) => {
