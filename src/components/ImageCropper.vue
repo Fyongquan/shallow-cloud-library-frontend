@@ -38,13 +38,14 @@
 
     <vue-cropper
       ref="cropperRef"
-      :img="imageUrl"
+      :img="currentImageUrl"
       output-type="png"
       :info="true"
       :can-move-box="true"
       :fixed-box="false"
       :auto-crop="true"
       :center-box="true"
+      @real-time="handleCropperRealTime"
     />
 
     <div class="toolbar-gap" />
@@ -76,7 +77,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { uploadPictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
@@ -98,15 +99,19 @@ const props = defineProps<Props>()
 const visible = ref(false)
 const loading = ref(false)
 const UPLOAD_TIMEOUT_MS = 180000
+const SYNC_IMAGE_DEBOUNCE_MS = 600
 const cropperRef = ref()
 const onlineUsers = ref<API.UserVO[]>([])
 const editingUser = ref<API.UserVO>()
+const collabImageUrl = ref('')
+const applyingRemoteImage = ref(false)
 const websocketErrorNotified = ref(false)
 
 const loginUserStore = useLoginUserStore()
 const loginUser = loginUserStore.loginUser
 
 const isTeamSpace = computed(() => props.space?.spaceType === SPACE_TYPE_ENUM.TEAM)
+const currentImageUrl = computed(() => collabImageUrl.value || props.imageUrl || '')
 
 const canEnterEdit = computed(() => isTeamSpace.value && !editingUser.value)
 const canExitEdit = computed(() => Boolean(editingUser.value && isCurrentUser(editingUser.value)))
@@ -118,6 +123,7 @@ const canEdit = computed(() => {
 })
 
 let websocket: PictureEditWebSocket | null = null
+let syncImageTimer: ReturnType<typeof setTimeout> | undefined
 
 const isCurrentUser = (user?: API.UserVO) => {
   if (!user?.id || !loginUser?.id) {
@@ -147,24 +153,29 @@ const applyRotateRight = () => {
 const handleZoomIn = () => {
   applyScale(1)
   syncEditAction(PICTURE_EDIT_ACTION_ENUM.ZOOM_IN)
+  queueImageSync()
 }
 
 const handleZoomOut = () => {
   applyScale(-1)
   syncEditAction(PICTURE_EDIT_ACTION_ENUM.ZOOM_OUT)
+  queueImageSync()
 }
 
 const handleRotateLeft = () => {
   applyRotateLeft()
   syncEditAction(PICTURE_EDIT_ACTION_ENUM.ROTATE_LEFT)
+  queueImageSync()
 }
 
 const handleRotateRight = () => {
   applyRotateRight()
   syncEditAction(PICTURE_EDIT_ACTION_ENUM.ROTATE_RIGHT)
+  queueImageSync()
 }
 
 const handleConfirm = () => {
+  syncCurrentImage()
   cropperRef.value?.getCropBlob((blob: Blob) => {
     const fileName = `${props.picture?.name || 'image'}.png`
     const file = new File([blob], fileName, { type: blob.type || 'image/png' })
@@ -207,9 +218,67 @@ const handleUpload = async (file: File) => {
   }
 }
 
+const clearImageSyncTimer = () => {
+  if (syncImageTimer) {
+    clearTimeout(syncImageTimer)
+    syncImageTimer = undefined
+  }
+}
+
+const handleCropperRealTime = () => {
+  queueImageSync()
+}
+
+const queueImageSync = () => {
+  if (!isTeamSpace.value || !canEdit.value || applyingRemoteImage.value) {
+    return
+  }
+  clearImageSyncTimer()
+  syncImageTimer = setTimeout(() => {
+    syncImageTimer = undefined
+    syncCurrentImage()
+  }, SYNC_IMAGE_DEBOUNCE_MS)
+}
+
+const syncCurrentImage = () => {
+  clearImageSyncTimer()
+  if (!isTeamSpace.value || !canEdit.value || applyingRemoteImage.value || !websocket) {
+    return
+  }
+  cropperRef.value?.getCropData((imageData: string) => {
+    if (!isTeamSpace.value || !canEdit.value || applyingRemoteImage.value || !websocket || !imageData) {
+      return
+    }
+    websocket.sendMessage({
+      type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.SYNC_IMAGE,
+      imageData,
+    })
+  })
+}
+
+const applyRemoteImage = (imageData?: string, user?: API.UserVO) => {
+  if (!imageData || !isTeamSpace.value || isCurrentUser(user)) {
+    return
+  }
+  if (collabImageUrl.value === imageData) {
+    return
+  }
+  clearImageSyncTimer()
+  applyingRemoteImage.value = true
+  collabImageUrl.value = imageData
+  nextTick(() => {
+    setTimeout(() => {
+      applyingRemoteImage.value = false
+    }, 0)
+  })
+}
+
 const resetCollabState = () => {
   onlineUsers.value = []
   editingUser.value = undefined
+  collabImageUrl.value = ''
+  applyingRemoteImage.value = false
+  clearImageSyncTimer()
   websocketErrorNotified.value = false
 }
 
@@ -244,6 +313,10 @@ const initWebsocket = () => {
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.SYNC_STATUS, (msg) => {
     onlineUsers.value = msg?.onlineUsers || []
     editingUser.value = msg?.editingUser
+  })
+
+  websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.SYNC_IMAGE, (msg) => {
+    applyRemoteImage(msg?.imageData, msg?.user)
   })
 
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.ENTER_EDIT, (msg) => {
