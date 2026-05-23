@@ -1,74 +1,78 @@
 ﻿<template>
   <div id="userAiAssistantPage" class="page-shell">
     <a-row :gutter="16" class="chat-layout-row">
-      <a-col :xs="24" :lg="7">
-        <a-card title="会话列表" :bordered="false">
+      <a-col :xs="24" :lg="7" class="session-col">
+        <a-card title="会话列表" :bordered="false" class="session-card">
           <template #extra>
             <a-button type="primary" size="small" @click="createNewSession">新建会话</a-button>
           </template>
-          <a-spin :spinning="sessionLoading">
-            <a-empty v-if="!sessionList.length" description="暂无会话" />
-            <a-list v-else :data-source="sessionList" class="session-list">
-              <template #renderItem="{ item }">
-                <a-list-item
-                  class="session-item"
-                  :class="{ active: item.chatId === activeChatId }"
-                  @click="switchSession(item.chatId)"
-                >
-                  <a-list-item-meta>
-                    <template #title>
-                      <div class="session-title-row">
-                        <span class="session-title-text">
-                          <PushpinOutlined v-if="item.isPinned === 1" class="session-pin-icon" />
-                          {{ item.title || '新对话' }}
-                        </span>
-                        <div class="session-actions" @click.stop>
-                          <a-tooltip :title="item.isPinned === 1 ? '取消置顶' : '置顶会话'">
-                            <a-button type="text" size="small" @click.stop="togglePinSession(item)">
-                              <PushpinOutlined :style="{ color: item.isPinned === 1 ? '#1677ff' : undefined }" />
-                            </a-button>
-                          </a-tooltip>
-                          <a-tooltip title="重命名会话">
-                            <a-button type="text" size="small" @click.stop="openRenameModal(item)">
-                              <EditOutlined />
-                            </a-button>
-                          </a-tooltip>
-                          <a-tooltip title="删除会话">
-                            <a-button type="text" size="small" danger @click.stop="deleteSession(item)">
-                              <DeleteOutlined />
-                            </a-button>
-                          </a-tooltip>
+          <div class="session-content">
+            <a-spin :spinning="sessionLoading" class="session-spin">
+              <a-empty v-if="!sessionList.length" description="暂无会话" />
+              <a-list v-else :data-source="sessionList" class="session-list">
+                <template #renderItem="{ item }">
+                  <a-list-item
+                    class="session-item"
+                    :class="{ active: item.chatId === activeChatId }"
+                    @click="switchSession(item.chatId)"
+                  >
+                    <a-list-item-meta>
+                      <template #title>
+                        <div class="session-title-row">
+                          <span class="session-title-text">
+                            <PushpinOutlined v-if="item.isPinned === 1" class="session-pin-icon" />
+                            {{ item.title || '新对话' }}
+                          </span>
+                          <div class="session-actions" @click.stop>
+                            <a-tooltip :title="item.isPinned === 1 ? '取消置顶' : '置顶会话'">
+                              <a-button type="text" size="small" @click.stop="togglePinSession(item)">
+                                <PushpinOutlined :style="{ color: item.isPinned === 1 ? '#1677ff' : undefined }" />
+                              </a-button>
+                            </a-tooltip>
+                            <a-tooltip title="重命名会话">
+                              <a-button type="text" size="small" @click.stop="openRenameModal(item)">
+                                <EditOutlined />
+                              </a-button>
+                            </a-tooltip>
+                            <a-tooltip title="删除会话">
+                              <a-button type="text" size="small" danger @click.stop="deleteSession(item)">
+                                <DeleteOutlined />
+                              </a-button>
+                            </a-tooltip>
+                          </div>
                         </div>
-                      </div>
-                    </template>
-                    <template #description>
-                      <div class="session-preview">{{ item.previewContent || '-' }}</div>
-                    </template>
-                  </a-list-item-meta>
-                </a-list-item>
-              </template>
-            </a-list>
-          </a-spin>
+                      </template>
+                      <template #description>
+                        <div class="session-preview">{{ item.previewContent || '-' }}</div>
+                      </template>
+                    </a-list-item-meta>
+                  </a-list-item>
+                </template>
+              </a-list>
+            </a-spin>
+          </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :lg="17">
+      <a-col :xs="24" :lg="17" class="chat-col">
         <a-card :title="activeSessionTitle" :bordered="false" class="chat-card">
-          <a-spin :spinning="messageLoading">
-            <div ref="messageContainerRef" class="message-container">
-              <a-empty v-if="!messageList.length" description="开始和 AI 助手对话吧" />
-              <template v-else>
-                <div
-                  v-for="item in messageList"
-                  :key="item.id || `${item.roleType}-${item.createTime}-${item.content}`"
-                  class="message-row"
-                  :class="item.roleType === 'USER' ? 'message-user' : 'message-assistant'"
-                >
-                  <div class="message-bubble">{{ item.content }}</div>
-                  <div class="message-time">{{ formatTime(item.createTime) }}</div>
-                </div>
-              </template>
-            </div>
-          </a-spin>
+          <div class="message-scroll-frame">
+            <a-spin :spinning="messageLoading" class="message-spin">
+              <div ref="messageContainerRef" class="message-container">
+                <a-empty v-if="!messageList.length" description="开始和 AI 助手对话吧" />
+                <template v-else>
+                  <div
+                    v-for="item in messageList"
+                    :key="item.id || `${item.roleType}-${item.createTime}-${item.content}`"
+                    class="message-row"
+                    :class="item.roleType === 'USER' ? 'message-user' : 'message-assistant'"
+                  >
+                    <div class="message-bubble">{{ item.content }}</div>
+                    <div class="message-time">{{ formatTime(item.createTime) }}</div>
+                  </div>
+                </template>
+              </div>
+            </a-spin>
+          </div>
           <div class="input-wrapper">
             <a-textarea
               v-model:value="inputMessage"
@@ -454,37 +458,79 @@ onBeforeUnmount(() => {
 
 <style scoped>
 #userAiAssistantPage {
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 #userAiAssistantPage .chat-layout-row {
+  flex: 1 1 auto;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
-#userAiAssistantPage :deep(.ant-col) {
+#userAiAssistantPage .session-col,
+#userAiAssistantPage .chat-col {
   display: flex;
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
+.session-card,
 .chat-card {
-  flex: 1;
-  min-height: 0;
-}
-
-#userAiAssistantPage :deep(.ant-card) {
-  flex: 1;
-  min-height: 0;
-}
-
-#userAiAssistantPage :deep(.ant-card-body) {
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
+}
+
+.chat-card {
+  flex: 1;
+}
+
+.session-card :deep(.ant-card-body),
+.chat-card :deep(.ant-card-body) {
+  flex: 1;
+  height: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.session-content {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.message-scroll-frame {
+  flex: 0 0 auto;
+  height: calc(100vh - 340px);
+  min-height: 320px;
+  max-height: calc(100vh - 340px);
+  overflow: hidden;
+}
+
+.session-spin,
+.message-spin,
+.session-spin :deep(.ant-spin-container),
+.message-spin :deep(.ant-spin-container) {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .session-list {
-  flex: 1;
+  flex: 1 1 0;
+  height: 100%;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -542,9 +588,12 @@ onBeforeUnmount(() => {
 }
 
 .message-container {
-  flex: 1;
-  min-height: 0;
+  height: calc(100vh - 340px);
+  min-height: 320px;
+  max-height: calc(100vh - 340px);
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
   background: #fafafa;
   border: 1px solid #f0f0f0;
   border-radius: 8px;
@@ -591,6 +640,7 @@ onBeforeUnmount(() => {
 }
 
 .input-wrapper {
+  flex: 0 0 auto;
   margin-top: 12px;
 }
 
